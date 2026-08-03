@@ -14,8 +14,10 @@ covers:
    warmup).
 2. **Training dynamics** — reward / multi-task ablations (NLL vs free-running CER reward;
    frozen vs co-trained decoder).
-3. **Learned boundaries** — predicted boundaries vs char-CTC ground truth over log-mel
-   spectrograms.
-4. **Fixed-rate baselines** — the WER-vs-compression frontier the learned segmenter must beat.
+3. **Learned boundaries** — predicted boundaries vs char-CTC ground truth, as three rows sharing
+   one time axis (spectrogram, gold char alignment, learned boundaries) so they can be traced
+   straight down and compared.
+4. **Fixed-rate baselines** — the WER-vs-compression frontier the learned segmenter must beat,
+   with our current trained models plotted and labeled on it.
 
 Open `index.html` directly, or use the hosted link above.
