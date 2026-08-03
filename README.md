@@ -9,6 +9,8 @@ sequence fed to a LoRA-Llama decoder.
 The report (`index.html`, self-contained — inline SVG charts + base64 spectrograms, light/dark)
 covers:
 
+0. **Background** — the task/data/model/pipeline setup and the cold-start → warmup → joint-RL
+   curriculum, for readers who want the full picture before the results.
 1. **The collapse and the fix** — how a per-frame entropy bonus + teacher-forced-NLL reward
    drove the boundaries to a degenerate solution, and the fix (drop entropy, longer decoder
    warmup), plus a "revisiting the failure" post-mortem: the collapse history is actually two
