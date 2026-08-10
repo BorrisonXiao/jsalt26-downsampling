@@ -1,31 +1,27 @@
 # JSALT 2026 — Learned Dynamic Downsampling for Speech LLMs
 
-Training-dynamics report for the RL speech-segmenter pilot: a per-frame **boundary policy**
-over frozen wav2vec2, trained with **GRPO** to dynamically downsample the audio-token
-sequence fed to a LoRA-Llama decoder.
+Cumulative experiment report for a learned boundary policy that compresses frozen speech
+features before a LoRA-adapted Llama decoder. The current report compares wav2vec2 and
+WavLM, fixed/native/alignment controls, Bernoulli and label-dependent policies, and
+decoder/segmenter initialization studies on LibriSpeech-100h.
 
 **▶ View the report: https://borrisonxiao.github.io/jsalt26-downsampling/**
 
-The report (`index.html`, self-contained — inline SVG charts + base64 spectrograms, light/dark)
-covers:
+The self-contained `index.html` is organized by research question:
 
-0. **Background** — the task/data/model/pipeline setup and the cold-start → warmup → joint-RL
-   curriculum, for readers who want the full picture before the results.
-
-1. **The collapse and the fix** — how a per-frame entropy bonus + teacher-forced-NLL reward
-   drove the boundaries to a degenerate solution, and the fix (drop entropy, longer decoder
-   warmup), plus a "revisiting the failure" post-mortem: the collapse history is actually two
-   distinct mechanisms (a true GRPO absorbing state, and a separate entropy-driven
-   argmax-vs-expected divergence), evidenced from the raw logs and an instrumented GRPO trace.
-2. **Training dynamics and reward / multi-task ablations** — the corrected three-seed,
-   exact-shared-warm-up NLL replication with mean ± SD, followed by the historical first-pass
-   CNN curves and CER-reward context.
-3. **Learned boundaries** — predicted boundaries vs char-CTC ground truth, as three rows sharing
-   one time axis (spectrogram, gold char alignment, learned boundaries) so they can be traced
-   straight down and compared.
-4. **Fixed-rate baselines** — the test-clean/test-other WER-vs-compression frontier, with the
-   corrected NLL three-seed means and SD error bars plotted at their learned compression rates.
-5. **Appendix** — exact architecture and trainable-parameter counts for both segmenter backbones
-   (CNN vs Transformer) and the decoder (proj + LoRA-adapted Llama-3.2-1B-Instruct).
+0. **Evidence map** — current claims, controlled comparisons, and evidence status.
+1. **WavLM benchmark matrix** — learned policies and fixed, native-rate, char-, and
+   phone-aligned quality–compression controls.
+2. **Controlled attribution** — detector features, decoder initialization, and a
+   same-decoder oracle/cold/post-RL boundary swap.
+3. **Encoder replication** — matched wav2vec2 versus WavLM results.
+4. **Label-dependent sampling** — Bernoulli versus first-order autoregressive policies,
+   including the live long-horizon three-seed study.
+5. **Method** — data, architecture, pooling semantics, and training curriculum.
+6. **Failure audit** — the original collapse and its two distinct mechanisms.
+7. **Reward/multi-task ablations** — three-seed NLL/CER and frozen/co-trained decoder results.
+8. **Qualitative boundaries** — verified char-CTC intervals versus learned boundaries.
+9. **wav2vec2 frontier** — the historical WER–compression plot and exact table.
+10. **Appendix** — architecture and trainable-parameter counts.
 
 Open `index.html` directly, or use the hosted link above.
