@@ -12,8 +12,8 @@ The self-contained `index.html` is organized by research question:
 0. **Summary** — what was compared, the WER for each system, and what it tells us.
 1. **WavLM results** — learned policies, fixed pooling, no downsampling, and char- and
    phone-aligned controls.
-2. **What causes the WER gap?** — detector features, decoder initialization, and a
-   same-decoder oracle/cold/post-RL boundary swap.
+2. **What causes the WER gap?** — a setup table, WER plots, decoder initialization,
+   detector input, and a same-decoder oracle/cold/post-RL boundary comparison.
 3. **wav2vec2 and WavLM** — the same learned-policy experiments with both encoders.
 4. **Previous boundary history** — Bernoulli versus first-order autoregressive policies,
    including the live long-horizon three-seed study.
