@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Literature review and experimental recommendations for reducing the kept ratio of learned speech segmentation while retaining ASR quality.">
+  <title>Decoder–segmenter bias and lower kept ratios · JSALT 2026</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <nav class="site-nav" aria-label="Primary navigation">
+    <div class="nav-inner">
+      <a class="brand" href="../index.html">JSALT 2026 · Downsampling</a>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="../reports/segmenter-training.html">Training report</a>
+        <a href="decoder-segmenter-bias.html" aria-current="page">Research analysis</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="container">
+        <p class="eyebrow">Research analysis · 11 August 2026</p>
+        <h1>How low can the kept ratio go?</h1>
+        <p class="lede">A careful test of the decoder–segmenter bias hypothesis, the closest prior literature, and a concrete path toward lower-rate acoustic prefixes without sacrificing ASR.</p>
+        <div class="button-row">
+          <a class="button primary" href="#recommendations">Jump to experiments</a>
+          <a class="button" href="../reports/segmenter-training.html">Open source report</a>
+        </div>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="container split">
+        <aside class="toc" aria-label="Table of contents">
+          <strong>On this page</strong>
+          <a href="#verdict">Verdict</a>
+          <a href="#evidence">Report evidence</a>
+          <a href="#mechanisms">Likely mechanisms</a>
+          <a href="#literature">Prior literature</a>
+          <a href="#recommendations">First experiments</a>
+          <a href="#objective">Optimization</a>
+          <a href="#decision">Decision rules</a>
+          <a href="#references">References</a>
+        </aside>
+
+        <article class="prose">
+          <section id="verdict">
+            <p class="eyebrow">Bottom line</p>
+            <h2>Character warm-up is helping so far</h2>
+            <div class="callout">
+              <strong>Verdict on the hypothesis</strong>
+              <p>A decoder-rate mismatch is plausible below the rates tested so far, but the report does not show that character-level warm-up is harmful. At approximately ρ = 0.23, character initialization is the strongest controlled gain.</p>
+            </div>
+            <p>The more precise hypothesis is an <strong>acoustic-prefix interface shift</strong>. Lowering the rate changes the prefix length, text-token positions, segment duration, pooled-vector statistics, boundary geometry, and the amount of information each prefix token must carry. “Frequency bias” may be one component of this combined shift.</p>
+          </section>
+
+          <section id="evidence" class="section">
+            <p class="eyebrow">What the report already establishes</p>
+            <h2>Three observations constrain the explanation</h2>
+            <div class="stat-grid">
+              <div class="stat"><strong>5.16 / 9.44</strong><span>Char-initialized decoder, learned ρ = 0.234</span></div>
+              <div class="stat"><strong>6.48 / 10.04</strong><span>From-scratch decoder, learned ρ = 0.242</span></div>
+              <div class="stat"><strong>5.49 / 9.21</strong><span>Phone alignment at ρ = 0.210</span></div>
+              <div class="stat"><strong>6.16 / 10.17</strong><span>Fixed k = 5 at ρ = 0.200</span></div>
+            </div>
+            <ol>
+              <li><strong>Decoder initialization helps.</strong> With the same segmenter family and pooling setup, the character-initialized decoder improves clean WER by 1.32 points and other WER by 0.60 points over training from scratch.</li>
+              <li><strong>Boundary geometry matters independently of rate.</strong> Phone-aligned boundaries beat fixed k = 5 at almost the same kept ratio.</li>
+              <li><strong>RL drift is currently more damaging than the cold mismatch.</strong> With one fixed decoder, dev-clean WER changes from 4.27 with oracle-character boundaries to 9.14 with cold learned boundaries and 17.37 after RL.</li>
+            </ol>
+            <p>The fixed k = 8 result is also informative: at ρ = 0.125 it reaches 6.41 clean but 11.10 other. The system has not hit a clean-speech information cliff, while difficult acoustics are much more sensitive to aggressive compression.</p>
+          </section>
+
+          <section id="mechanisms" class="section">
+            <p class="eyebrow">Mechanism audit</p>
+            <h2>What “decoder frequency bias” could actually mean</h2>
+            <div class="card-grid">
+              <div class="card">
+                <span class="tag amber">Position</span>
+                <h3>RoPE prefix-offset shift</h3>
+                <p>The acoustic prefix precedes prompt and text tokens. Without explicit position IDs, changing the batch-padded prefix length changes the default RoPE positions seen by every downstream text token.</p>
+              </div>
+              <div class="card">
+                <span class="tag blue">Statistics</span>
+                <h3>Longer mean-pooled segments</h3>
+                <p>As segment length n grows, a mean typically has lower variance. The projection receives a rate-dependent change in norm and covariance even before considering lost phonetic detail.</p>
+              </div>
+              <div class="card">
+                <span class="tag green">Geometry</span>
+                <h3>Different grouping boundaries</h3>
+                <p>Two policies with the same count can merge different transitions. The phone-versus-fixed result and boundary-swap audit show that rate alone cannot explain WER.</p>
+              </div>
+              <div class="card">
+                <span class="tag">Capacity</span>
+                <h3>More content per token</h3>
+                <p>At ρ = 0.125, one token averages eight 50 Hz frames, or 160 ms. The projection and decoder must recover several linguistic events from one order-reduced vector.</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="literature" class="section">
+            <p class="eyebrow">Closest prior literature</p>
+            <h2>What has worked elsewhere</h2>
+            <div class="card">
+              <span class="tag green">Closest RL analogue</span>
+              <h3>Variable frame rate with minimum-error RL</h3>
+              <p>Jiang, Zhang, and Woodland pretrain a skip controller from phone alignments, then optimize sequence error plus frame rate. They cap maximum skips and prevent noisy controller gradients from flowing into shared acoustic layers. Their variable-rate systems slightly improve rate and WER over fixed low-rate baselines, but accuracy becomes harder to preserve once the starting rate is already low.</p>
+              <p><a href="https://www.isca-archive.org/interspeech_2021/jiang21b_interspeech.html">Jiang et al., Interspeech 2021 ↗</a></p>
+            </div>
+            <div class="card">
+              <span class="tag blue">Count-controlled compression</span>
+              <h3>CIF, CTC collapse, and forced boundary counts</h3>
+              <p>CIF uses differentiable monotonic accumulation with target-length scaling and a quantity loss. AdaTranS predicts boundaries, uses weighted shrinking, and forces the training-time output count. Both reduce the action space and explicitly separate “where to cut” from “how many outputs to emit.”</p>
+              <p><a href="https://arxiv.org/abs/1905.11235">CIF, ICASSP 2020 ↗</a> · <a href="https://aclanthology.org/2023.findings-emnlp.154/">AdaTranS, Findings EMNLP 2023 ↗</a></p>
+            </div>
+            <div class="card">
+              <span class="tag amber">Decoder-only ASR</span>
+              <h3>Conservative confidence-aware removal is robust</h3>
+              <p>CJST compares several CTC compression rules before a decoder-only model. Removing frames only when blank probability exceeds 0.95 gives 2.22 / 4.94 LibriSpeech WER at acoustic-prompt/text ratio 1.22. A more compact combined collapse reaches ratio 1.08 with slightly worse 2.27 / 5.04 WER. These ratios are not the same as this project's frame-kept ratio, but the quality–compactness trade-off is directly relevant.</p>
+              <p><a href="https://arxiv.org/html/2411.07607">Zhou et al., ICASSP 2025 ↗</a></p>
+            </div>
+            <div class="card">
+              <span class="tag">Extreme reduction</span>
+              <h3>The decoder must compensate as the encoder rate falls</h3>
+              <p>Prabhavalkar et al. demonstrate encoder outputs as sparse as one per 2.56 seconds on large-scale voice search. At their most extreme 5.12-second setting, replacing a two-label prediction network with a long-context LSTM improves voice-search WER from 5.4 to 3.8. Rich decoder context becomes more important under stronger compression.</p>
+              <p><a href="https://arxiv.org/html/2402.17184">Prabhavalkar et al., ICASSP 2024 ↗</a></p>
+            </div>
+            <div class="card">
+              <span class="tag blue">Multi-budget training</span>
+              <h3>Expose one model to many lengths</h3>
+              <p>LengthDrop trains a Transformer with stochastic sequence lengths so one set of weights can serve multiple efficiency budgets. AdaTS applies a related speech-specific idea through adjacent-token score-and-merge and introduces the sampler while the downstream speech-language model can still adapt.</p>
+              <p><a href="https://aclanthology.org/2021.acl-long.508/">Length-Adaptive Transformer, ACL 2021 ↗</a> · <a href="https://openreview.net/forum?id=9XelZ6s8qe">AdaTS, ICLR 2026 workshop ↗</a></p>
+            </div>
+            <div class="callout amber">
+              <strong>Literature gap</strong>
+              <p>No reviewed work cleanly trains a decoder-only acoustic-prefix model at one aligned rate and then isolates its transfer to several lower, correct rates. A controlled cross-rate study would be both diagnostically useful and potentially publishable.</p>
+            </div>
+          </section>
+
+          <section id="recommendations" class="section">
+            <p class="eyebrow">Recommended first experiments</p>
+            <h2>Diagnose before launching another RL sweep</h2>
+            <ol class="steps">
+              <li>
+                <strong>Build an alignment-constrained cross-rate matrix</strong>
+                <p>Starting from character-aligned segments, merge adjacent units to hit ρ ∈ {0.293, 0.23, 0.20, 0.167, 0.125}. Compare zero-shot character initialization, target-rate adaptation, target-rate training from scratch, and one multi-rate decoder. Freeze the segmenter.</p>
+              </li>
+              <li>
+                <strong>Ablate prefix position IDs</strong>
+                <p>Compare the current default, text positions packed after each utterance's actual acoustic length, and a fixed text origin with acoustic positions derived from original segment midpoints. Use identical conventions in training and generation.</p>
+              </li>
+              <li>
+                <strong>Add duration and pooled statistics</strong>
+                <p>Append log segment duration; normalize pooled vectors; compare plain mean with confidence-weighted mean and a compact [mean, standard deviation, endpoint difference, duration] representation.</p>
+              </li>
+              <li>
+                <strong>Warm the decoder across rates</strong>
+                <p>Use a sandwich batch containing the character rate, the lowest target rate, and a random intermediate rate. Start with ρ = 0.167 and 0.125 before attempting 0.10.</p>
+              </li>
+              <li>
+                <strong>Replace frame Bernoulli actions with boundary merging</strong>
+                <p>Generate character/phone/CTC candidate boundaries, then learn which candidates to delete. Always retain start/end, cap maximum segment duration, and force the exact count during supervised warm-up.</p>
+              </li>
+              <li>
+                <strong>Distill the high-rate character model</strong>
+                <p>Match teacher text logits—and optionally aligned text hidden states—while training the low-rate projection and LoRA. This transfers downstream behavior without trying to align different acoustic-token sequences.</p>
+              </li>
+            </ol>
+
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Cross-rate outcome</th><th>Diagnosis</th><th>Next action</th></tr></thead>
+                <tbody>
+                  <tr><td>Target-adapted succeeds; zero-shot fails</td><td>Decoder interface/rate bias</td><td>Adopt multi-rate warm-up or a short target-rate adaptation phase</td></tr>
+                  <tr><td>Adapted and scratch models both fail</td><td>Pooling or information-capacity limit</td><td>Improve aggregation, duration encoding, or decoder capacity</td></tr>
+                  <tr><td>Fixed merged boundaries succeed; learned policy fails</td><td>Boundary geometry and policy optimization</td><td>Use candidate merging, local supervision, and constrained actions</td></tr>
+                  <tr><td>Fixed text positions recover performance</td><td>RoPE/prefix-offset confound</td><td>Make explicit positions part of the model interface</td></tr>
+                  <tr><td>Clean holds while other degrades</td><td>Budget allocation fails on hard speech</td><td>Allow per-utterance rates with max-duration and tail-risk controls</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="objective" class="section">
+            <p class="eyebrow">Mathematical formulation</p>
+            <h2>Separate decoder bias from compression loss</h2>
+            <p>Let <span class="math">s<sub>r</sub></span> be a fixed segmentation at rate r, and let <span class="math">θ<sub>c</sub></span> be the character-trained decoder. The decoder adaptation gap is:</p>
+            <div class="equation">B(r) = L(θ<sub>c</sub>, s<sub>r</sub>) − min<sub>θ</sub> L(θ, s<sub>r</sub>)</div>
+            <p>The best-achieved compression gap is:</p>
+            <div class="equation">C(r) = min<sub>θ</sub> L(θ, s<sub>r</sub>) − min<sub>θ</sub> L(θ, s<sub>char</sub>)</div>
+            <p>The fixed-boundary matrix estimates these two quantities. Current joint experiments change segmentation, rate, pooling distribution, and decoder parameters together, so they cannot identify either term.</p>
+
+            <details>
+              <summary>Use a constrained rate objective instead of a fixed band</summary>
+              <p>The scientific goal is naturally:</p>
+              <div class="equation">min<sub>π, θ</sub> E[ρ] &nbsp; subject to &nbsp; E[L<sub>ASR</sub> − L<sub>char</sub>] ≤ ε</div>
+              <p>A primal-dual surrogate is:</p>
+              <div class="equation">J = E[ρ] + λ(E[ΔL] − ε), &nbsp; λ ← [λ + η<sub>λ</sub>(E[ΔL] − ε)]<sub>+</sub></div>
+              <p>Use token NLL or teacher KL during training and corpus WER for checkpoint/Pareto selection. Add a maximum-duration or tail-risk constraint so an average-rate objective cannot sacrifice difficult utterances.</p>
+            </details>
+
+            <details>
+              <summary>Obtain local boundary supervision before RL</summary>
+              <p>For candidate boundary j, measure the decoder-aware cost of deleting it:</p>
+              <div class="equation">I<sub>j</sub> = L(s \ {j}) − L(s)</div>
+              <p>Small <span class="math">I<sub>j</sub></span> means the neighboring segments are safe to merge. Batched leave-one-boundary-out evaluations create supervised targets for a merge scorer. Sample pairwise deletions to determine whether greedy merging is adequate or interactions require a sequential/beam policy.</p>
+            </details>
+
+            <div class="callout amber">
+              <strong>GRPO subtlety</strong>
+              <p>Subtracting character NLL from every sample does not change the current within-utterance, group-normalized GRPO advantages: it is constant across that utterance's K samples. The reference is useful for the quality constraint, diagnostics, or a learned critic, but is not by itself an optimization fix.</p>
+            </div>
+          </section>
+
+          <section id="decision" class="section">
+            <p class="eyebrow">Practical sequence</p>
+            <h2>The shortest path to an answer</h2>
+            <p>Run a one-seed screen in this order:</p>
+            <ol>
+              <li>Fixed alignment-constrained rates at 0.167 and 0.125.</li>
+              <li>Character-only versus target-only versus multi-rate decoder warm-up.</li>
+              <li>Default versus controlled position IDs.</li>
+              <li>Duration-aware and weighted pooling.</li>
+              <li>Candidate-boundary merging with teacher distillation.</li>
+            </ol>
+            <p>Replicate only the winning configurations across three seeds. Reintroduce RL after the constrained merge policy is already competitive. Track not only ρ, but tokens per second, acoustic tokens per output token, maximum segment duration, WER substitutions/deletions/insertions, and performance stratified by utterance difficulty.</p>
+          </section>
+
+          <section id="references" class="section">
+            <p class="eyebrow">Selected references</p>
+            <h2>Primary sources</h2>
+            <ol class="references">
+              <li><a href="https://www.isca-archive.org/interspeech_2021/jiang21b_interspeech.html">Jiang, Zhang, Woodland. Variable Frame Rate Acoustic Models Using Minimum Error Reinforcement Learning. Interspeech 2021.</a></li>
+              <li><a href="https://arxiv.org/abs/1905.11235">Dong, Xu. CIF: Continuous Integrate-and-Fire for End-to-End Speech Recognition. ICASSP 2020.</a></li>
+              <li><a href="https://aclanthology.org/2021.eacl-main.57/">Gaido et al. CTC-based Compression for Direct Speech Translation. EACL 2021.</a></li>
+              <li><a href="https://aclanthology.org/2023.findings-emnlp.154/">Zeng, Li, Liu. AdaTranS: Boundary-based Shrinking. Findings of EMNLP 2023.</a></li>
+              <li><a href="https://arxiv.org/html/2411.07607">Zhou et al. CJST: CTC Compressor based Joint Speech and Text Training for Decoder-Only ASR. ICASSP 2025.</a></li>
+              <li><a href="https://arxiv.org/abs/2307.03917">Wu et al. On Decoder-only Architecture for Speech-to-Text and LLM Integration. ASRU 2023.</a></li>
+              <li><a href="https://arxiv.org/html/2402.17184">Prabhavalkar et al. Extreme Encoder Output Frame Rate Reduction. ICASSP 2024.</a></li>
+              <li><a href="https://aclanthology.org/2021.acl-long.508/">Kim, Cho. Length-Adaptive Transformer. ACL-IJCNLP 2021.</a></li>
+              <li><a href="https://www.isca-archive.org/interspeech_2021/haidar21_interspeech.html">Haidar, Xing, Rezagholizadeh. Time Reduction and Self-Knowledge Distillation. Interspeech 2021.</a></li>
+              <li><a href="https://openreview.net/forum?id=9XelZ6s8qe">Sannigrahi, Attanasio, Martins. AdaTS. ICLR 2026 MM Intelligence Workshop.</a></li>
+            </ol>
+          </section>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">Research synthesis based on the cumulative segmenter report, project code, and citation-verified primary literature.</div>
+  </footer>
+</body>
+</html>

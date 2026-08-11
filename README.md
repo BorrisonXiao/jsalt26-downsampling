@@ -1,27 +1,27 @@
 # JSALT 2026 — Learned Dynamic Downsampling for Speech LLMs
 
-Cumulative experiment report for a learned boundary policy that compresses frozen speech
-features before a LoRA-adapted Llama decoder. The current report compares wav2vec2 and
-WavLM, fixed/native/alignment controls, Bernoulli and label-dependent policies, and
-decoder/segmenter initialization studies on LibriSpeech-100h.
+Static GitHub Pages site for experiment reports and research analysis on learned boundary
+policies that compress frozen speech features before a LoRA-adapted Llama decoder.
 
-**▶ View the report: https://borrisonxiao.github.io/jsalt26-downsampling/**
+**▶ Browse the site: https://borrisonxiao.github.io/jsalt26-downsampling/**
 
-The self-contained `index.html` is organized by research question:
+## Pages
 
-0. **Summary** — what was compared, the WER for each system, and what it tells us.
-1. **WavLM results** — learned policies, fixed pooling, no downsampling, and char- and
-   phone-aligned controls.
-2. **What causes the WER gap?** — a setup table, WER plots, decoder initialization,
-   segmenter input, and a same-decoder oracle/cold/post-RL boundary comparison.
-3. **wav2vec2 and WavLM** — the same learned-policy experiments with both encoders.
-4. **Previous boundary history** — Bernoulli versus first-order autoregressive policies,
-   including the live long-horizon three-seed study.
-5. **Method** — data, architecture, pooling semantics, and training curriculum.
-6. **Failure audit** — the original collapse and its two distinct mechanisms.
-7. **Reward/multi-task ablations** — three-seed NLL/CER and frozen/co-trained decoder results.
-8. **Qualitative boundaries** — verified char-CTC intervals versus learned boundaries.
-9. **wav2vec2 WER versus compression** — the historical plot and exact table.
-10. **Appendix** — architecture and trainable-parameter counts.
+- [`index.html`](index.html) — project dashboard and navigation.
+- [`reports/segmenter-training.html`](reports/segmenter-training.html) — navigable wrapper
+  for the cumulative experiment report.
+- [`reports/segmenter-training-standalone.html`](reports/segmenter-training-standalone.html)
+  — original self-contained report with inline figures.
+- [`research/decoder-segmenter-bias.html`](research/decoder-segmenter-bias.html) — literature
+  review, hypothesis audit, mathematical framing, and prioritized experiments for lower kept
+  ratios.
+- [`assets/site.css`](assets/site.css) — shared styling for the dashboard and research pages.
 
-Open `index.html` directly, or use the hosted link above.
+## Adding another page
+
+1. Put experiment reports under `reports/` and analysis pages under `research/`.
+2. Link the new page from the card grid in `index.html`.
+3. Reuse `assets/site.css` and the existing navigation markup for a consistent layout.
+
+No site generator or JavaScript build is required. GitHub Pages serves the committed HTML and
+CSS directly from the `main` branch.
