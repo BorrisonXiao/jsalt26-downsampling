@@ -59,12 +59,12 @@
         <div class="stat-grid">
           <div class="stat"><strong>0.293</strong><span>Character-aligned kept ratio</span></div>
           <div class="stat"><strong>5.03 / 8.07</strong><span>Character-aligned clean / other WER</span></div>
-          <div class="stat"><strong>0.234</strong><span>Best learned cross-encoder kept ratio</span></div>
-          <div class="stat"><strong>5.16 / 9.44</strong><span>Best learned cross-encoder clean / other WER</span></div>
+          <div class="stat"><strong>0.234</strong><span>Best deployable WavLM AR kept ratio</span></div>
+          <div class="stat"><strong>5.06 / 9.55</strong><span>Best deployable WavLM AR clean / other WER</span></div>
         </div>
         <div class="callout">
           <strong>Working conclusion</strong>
-          <p>Character initialization helps at the tested learned rates. The next bottleneck is better described as an acoustic-prefix interface shift: boundary geometry, positional offsets, pooling statistics, and decoder adaptation all change together as the rate falls.</p>
+          <p>The WavLM first-order-AR segmenter is the current best deployable learned system. At a 0.234 kept ratio it nearly matches oracle character boundaries on test-clean; the larger test-other gap points to boundary robustness and decoder adaptation under harder speech.</p>
         </div>
       </div>
     </section>
