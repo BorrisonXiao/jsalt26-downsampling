@@ -59,12 +59,12 @@
         <div class="stat-grid">
           <div class="stat"><strong>0.293</strong><span>Character-aligned kept ratio</span></div>
           <div class="stat"><strong>5.03 / 8.07</strong><span>Character-aligned clean / other WER</span></div>
-          <div class="stat"><strong>0.234</strong><span>Best deployable WavLM AR kept ratio</span></div>
-          <div class="stat"><strong>5.06 / 9.55</strong><span>Best deployable WavLM AR clean / other WER</span></div>
+          <div class="stat"><strong>0.234</strong><span>WavLM CNN first-order AR kept ratio</span></div>
+          <div class="stat"><strong>5.06 / 9.55</strong><span>WavLM CNN first-order AR clean / other WER</span></div>
         </div>
         <div class="callout">
           <strong>Working conclusion</strong>
-          <p>The WavLM first-order-AR segmenter is the current best deployable learned system. At a 0.234 kept ratio it nearly matches oracle character boundaries on test-clean; the larger test-other gap points to boundary robustness and decoder adaptation under harder speech.</p>
+          <p>The highlighted learned configuration uses WavLM features, a CNN segmenter, first-order AR, and the best char decoder. At a 0.234 kept ratio it nearly matches oracle character boundaries on test-clean; the larger test-other gap points to boundary robustness and decoder adaptation under harder speech.</p>
         </div>
       </div>
     </section>
