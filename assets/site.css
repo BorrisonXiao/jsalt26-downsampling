@@ -207,6 +207,7 @@ h3 { margin: 0 0 8px; font-size: 19px; }
 
 .table-wrap { overflow-x: auto; margin: 22px 0; border: 1px solid var(--border); border-radius: 12px; }
 table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: 14px; }
+caption { padding: 11px 14px; color: var(--muted); font-size: 13px; text-align: left; caption-side: bottom; }
 th, td { padding: 12px 14px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
 tr:last-child td { border-bottom: 0; }
 th { color: var(--muted); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; }
@@ -236,6 +237,8 @@ code, .math {
   font-size: .92em;
 }
 .equation { overflow-x: auto; margin: 14px 0; padding: 14px 16px; border-radius: 9px; background: var(--surface-2); }
+.equation mjx-container[display="true"] { margin: 0 !important; }
+mjx-container { max-width: 100%; }
 
 details { margin: 16px 0; padding: 16px 18px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 summary { cursor: pointer; font-weight: 720; }

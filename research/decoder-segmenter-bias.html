@@ -6,6 +6,13 @@
   <meta name="description" content="Literature review and experimental recommendations for reducing the kept ratio of learned speech segmentation while retaining ASR quality.">
   <title>Decoder–segmenter bias and lower kept ratios · JSALT 2026</title>
   <link rel="stylesheet" href="../assets/site.css">
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body>
   <nav class="site-nav" aria-label="Primary navigation">
@@ -174,6 +181,7 @@
 
             <div class="table-wrap">
               <table>
+                <caption><strong>Table 1.</strong> Cross-rate outcomes, their diagnostic interpretation, and the corresponding next experiment.</caption>
                 <thead><tr><th>Cross-rate outcome</th><th>Diagnosis</th><th>Next action</th></tr></thead>
                 <tbody>
                   <tr><td>Target-adapted succeeds; zero-shot fails</td><td>Decoder interface/rate bias</td><td>Adopt multi-rate warm-up or a short target-rate adaptation phase</td></tr>
@@ -189,26 +197,59 @@
           <section id="objective" class="section">
             <p class="eyebrow">Mathematical formulation</p>
             <h2>Separate decoder bias from compression loss</h2>
-            <p>Let <span class="math">s<sub>r</sub></span> be a fixed segmentation at rate r, and let <span class="math">θ<sub>c</sub></span> be the character-trained decoder. The decoder adaptation gap is:</p>
-            <div class="equation">B(r) = L(θ<sub>c</sub>, s<sub>r</sub>) − min<sub>θ</sub> L(θ, s<sub>r</sub>)</div>
+            <p>Let \(s_r\) be a fixed segmentation at kept ratio \(r\), let \(\theta_c\) be the character-trained decoder, and let \(\mathcal{L}(\theta,s)\) be the decoder loss under segmentation \(s\). The decoder adaptation gap is:</p>
+            <div class="equation">
+              \[
+              B(r)=\mathcal{L}(\theta_c,s_r)-\min_{\theta}\mathcal{L}(\theta,s_r).
+              \]
+            </div>
             <p>The best-achieved compression gap is:</p>
-            <div class="equation">C(r) = min<sub>θ</sub> L(θ, s<sub>r</sub>) − min<sub>θ</sub> L(θ, s<sub>char</sub>)</div>
+            <div class="equation">
+              \[
+              C(r)=\min_{\theta}\mathcal{L}(\theta,s_r)
+              -\min_{\theta}\mathcal{L}(\theta,s_{\mathrm{char}}).
+              \]
+            </div>
             <p>The fixed-boundary matrix estimates these two quantities. Current joint experiments change segmentation, rate, pooling distribution, and decoder parameters together, so they cannot identify either term.</p>
 
             <details>
               <summary>Use a constrained rate objective instead of a fixed band</summary>
-              <p>The scientific goal is naturally:</p>
-              <div class="equation">min<sub>π, θ</sub> E[ρ] &nbsp; subject to &nbsp; E[L<sub>ASR</sub> − L<sub>char</sub>] ≤ ε</div>
+              <p>Let \(\pi\) be the segmenter policy, \(\rho\) its kept ratio, and \(\Delta\mathcal{L}=\mathcal{L}_{\mathrm{ASR}}-\mathcal{L}_{\mathrm{char}}\) the loss increase over the character reference. The scientific goal is:</p>
+              <div class="equation">
+                \[
+                \begin{aligned}
+                \min_{\pi,\theta}\quad & \mathbb{E}_{\pi}[\rho] \\
+                \text{subject to}\quad & \mathbb{E}_{\pi}[\Delta\mathcal{L}]\le\varepsilon.
+                \end{aligned}
+                \]
+              </div>
               <p>A primal-dual surrogate is:</p>
-              <div class="equation">J = E[ρ] + λ(E[ΔL] − ε), &nbsp; λ ← [λ + η<sub>λ</sub>(E[ΔL] − ε)]<sub>+</sub></div>
+              <div class="equation">
+                \[
+                \begin{aligned}
+                J(\pi,\theta,\lambda)
+                  &=\mathbb{E}_{\pi}[\rho]
+                    +\lambda\!\left(\mathbb{E}_{\pi}[\Delta\mathcal{L}]-\varepsilon\right),
+                    \qquad \lambda\ge 0, \\
+                \lambda
+                  &\leftarrow\left[\lambda+\eta_{\lambda}
+                    \!\left(\mathbb{E}_{\pi}[\Delta\mathcal{L}]-\varepsilon\right)\right]_{+}.
+                \end{aligned}
+                \]
+              </div>
               <p>Use token NLL or teacher KL during training and corpus WER for checkpoint/Pareto selection. Add a maximum-duration or tail-risk constraint so an average-rate objective cannot sacrifice difficult utterances.</p>
             </details>
 
             <details>
               <summary>Obtain local boundary supervision before RL</summary>
-              <p>For candidate boundary j, measure the decoder-aware cost of deleting it:</p>
-              <div class="equation">I<sub>j</sub> = L(s \ {j}) − L(s)</div>
-              <p>Small <span class="math">I<sub>j</sub></span> means the neighboring segments are safe to merge. Batched leave-one-boundary-out evaluations create supervised targets for a merge scorer. Sample pairwise deletions to determine whether greedy merging is adequate or interactions require a sequential/beam policy.</p>
+              <p>For candidate boundary \(j\), measure the decoder-aware cost of deleting it:</p>
+              <div class="equation">
+                \[
+                I_j(s)=\mathcal{L}\!\left(\theta,s\setminus\{j\}\right)
+                -\mathcal{L}(\theta,s).
+                \]
+              </div>
+              <p>Small \(I_j(s)\) means the neighboring segments are safe to merge. Batched leave-one-boundary-out evaluations create supervised targets for a merge scorer. Sample pairwise deletions to determine whether greedy merging is adequate or interactions require a sequential/beam policy.</p>
             </details>
 
             <div class="callout amber">
