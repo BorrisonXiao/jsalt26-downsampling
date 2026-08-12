@@ -14,7 +14,8 @@
       <div class="nav-links">
         <a href="./" aria-current="page">Home</a>
         <a href="reports/segmenter-training.html">Training report</a>
-        <a href="research/decoder-segmenter-bias.html">Research analysis</a>
+        <a href="research/">Analyses</a>
+        <a href="proposals/">Proposals</a>
       </div>
     </div>
   </nav>
@@ -24,10 +25,11 @@
       <div class="container">
         <p class="eyebrow">JSALT 2026 · OmniEnc</p>
         <h1>Learned dynamic downsampling for speech LLMs</h1>
-        <p class="lede">A browsable home for experiment reports, research analysis, and next-step decisions on compressing speech representations without sacrificing recognition quality.</p>
+        <p class="lede">A browsable home for experiment reports, research analyses, and experiment proposals on compressing speech representations without sacrificing recognition quality.</p>
         <div class="button-row">
           <a class="button primary" href="reports/segmenter-training.html">Open training report</a>
-          <a class="button" href="research/decoder-segmenter-bias.html">Read research analysis</a>
+          <a class="button" href="research/">Browse analyses</a>
+          <a class="button" href="proposals/">Browse proposals</a>
         </div>
       </div>
     </header>
@@ -36,17 +38,22 @@
       <div class="container">
         <p class="eyebrow">Pages</p>
         <h2>Browse the project</h2>
-        <p class="section-intro">Each page is self-contained and can be linked directly. New reports can be added under <code>reports/</code> or <code>research/</code> without a site generator.</p>
-        <div class="card-grid">
+        <p class="section-intro">Reports, analyses, and proposals are organized into separate collections so new items can be added without changing the overall navigation.</p>
+        <div class="card-grid three">
           <a class="card card-link" href="reports/segmenter-training.html">
             <span class="tag blue">Experiment report</span>
             <h3>Segmenter training dynamics</h3>
             <p>The cumulative LibriSpeech-100h report: baselines, learned policies, boundary-swap diagnostics, failure audit, and multi-seed comparisons.</p>
           </a>
-          <a class="card card-link" href="research/decoder-segmenter-bias.html">
-            <span class="tag green">Literature + recommendations</span>
-            <h3>How low can the kept ratio go?</h3>
-            <p>An evidence-based analysis of decoder–segmenter bias, related work, mathematical decomposition, and a prioritized experimental plan.</p>
+          <a class="card card-link" href="research/">
+            <span class="tag green">Analyses</span>
+            <h3>Research analyses</h3>
+            <p>Evidence-based interpretations of the experiment results, literature, mechanisms, and follow-up decisions.</p>
+          </a>
+          <a class="card card-link" href="proposals/">
+            <span class="tag amber">Proposals</span>
+            <h3>Experiment proposals</h3>
+            <p>Motivation, controlled study designs, implementation boundaries, risks, and decision rules for future experiments.</p>
           </a>
         </div>
       </div>
