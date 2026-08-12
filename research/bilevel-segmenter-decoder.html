@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Research analysis and retrospective pilot on bilevel optimization for a learned speech segmenter and decoder.">
+  <title>Bilevel optimization for the segmenter and decoder · JSALT 2026</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <nav class="site-nav" aria-label="Primary navigation">
+    <div class="nav-inner">
+      <a class="brand" href="../index.html">JSALT 2026 · Downsampling</a>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="../reports/segmenter-training.html">Training report</a>
+        <a href="./" aria-current="page">Analyses</a>
+        <a href="../proposals/">Proposals</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="container">
+        <p class="eyebrow">Research analysis · 11 August 2026</p>
+        <h1>Does bilevel optimization fit our segmenter–decoder problem?</h1>
+        <p class="lede">Yes as a description of the goal: choose boundaries that help a decoder after it adapts, not only boundaries that score well under its current parameters. A six-run pilot finds a real inner-versus-held-out mismatch; the next step is a small one-step-lookahead test.</p>
+        <div class="button-row">
+          <a class="button primary" href="#next-test">Jump to the proposed test</a>
+          <a class="button" href="./">← All analyses</a>
+          <a class="button" href="../reports/segmenter-training.html">Open training report</a>
+        </div>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="container split">
+        <aside class="toc" aria-label="Table of contents">
+          <strong>On this page</strong>
+          <a href="#verdict">Verdict</a>
+          <a href="#mapping">Problem mapping</a>
+          <a href="#pilot">Retrospective pilot</a>
+          <a href="#borrow">What to borrow</a>
+          <a href="#opd">Connection to OPD</a>
+          <a href="#next-test">Next test</a>
+          <a href="#limits">Limits</a>
+          <a href="#references">References</a>
+        </aside>
+
+        <article class="prose">
+          <section id="verdict">
+            <p class="eyebrow">Bottom line</p>
+            <h2>The formulation applies; the expensive machinery may not be needed</h2>
+            <div class="callout">
+              <strong>Recommended interpretation</strong>
+              <p>Treat decoder adaptation as the inner problem and held-out ASR plus the kept-ratio penalty as the outer problem. Keep hard boundary sampling and GRPO. For the first test, change the reward to measure query loss after one temporary decoder update.</p>
+            </div>
+            <p>The important distinction is temporal. The current segmenter is rewarded for boundaries that the <em>current</em> decoder likes. The scientific goal is closer to boundaries that permit a decoder to learn and generalize well. Those rankings can differ.</p>
+            <p>This does <strong>not</strong> imply that a full second-order bilevel optimizer is the next move. A support/query split and a one-step decoder lookahead test the central idea while preserving the current discrete policy and deployment path.</p>
+          </section>
+
+          <section id="mapping" class="section">
+            <p class="eyebrow">Problem mapping</p>
+            <h2>Our current loop is joint training, not bilevel training</h2>
+            <p>Let <span class="math">φ</span> be segmenter parameters, <span class="math">π<sub>φ</sub></span> the boundary policy, <span class="math">a</span> a hard boundary sequence, and <span class="math">θ</span> the trainable decoder projection and LoRA parameters. The current sampled reward has the form:</p>
+            <div class="equation">\[
+R_{\mathrm{current}}(a;\theta)
+  =-\mathcal{L}_{\mathrm{NLL}}(\theta;a)
+   -\lambda_{\rho}\mathcal{P}_{\rho}(a).
+\]</div>
+            <p>The reward is detached; the segmenter receives a GRPO update, while decoder CE updates <span class="math">θ</span>. Both happen in the same loop. A bilevel statement instead asks how well the decoder performs after adapting to the boundary distribution:</p>
+            <div class="equation">\[
+\begin{aligned}
+\theta^{\star}(\phi)
+  &amp;\in \arg\min_{\theta}\;
+    \mathbb{E}_{a_S\sim\pi_{\phi}}
+    \left[\mathcal{L}^{S}_{\mathrm{inner}}(\theta,a_S)\right], \\
+\min_{\phi}\quad
+  &amp;\mathbb{E}_{a_Q\sim\pi_{\phi}}
+    \left[
+      \mathcal{L}^{Q}_{\mathrm{outer}}(\theta^{\star}(\phi),a_Q)
+      +\lambda_{\rho}\mathcal{P}_{\rho}(a_Q)
+    \right].
+\end{aligned}
+\]</div>
+            <p>The support/query distinction matters: support speech trains the temporary decoder, and separate query speech judges whether the resulting update generalizes.</p>
+            
+    <div class="table-wrap">
+      <table>
+        <caption><strong>Table 1.</strong> The current loop and the proposed bilevel view. S is an inner support batch; Q is a separate outer query batch.</caption>
+        <thead><tr><th>Part</th><th>Current joint RL</th><th>Bilevel version</th></tr></thead>
+        <tbody><tr><td>Decoder</td><td>Updated by transcript CE on the training stream</td><td>Temporarily adapted on support speech for each sampled boundary policy</td></tr><tr><td>Segmenter score</td><td>NLL from the decoder before it adapts to the sampled boundaries</td><td>Query loss after the temporary decoder adaptation</td></tr><tr><td>Data split</td><td>Decoder update and segmenter reward come from the same training stream</td><td>Decoder adapts on S; the segmenter is judged on held-out Q</td></tr><tr><td>Discrete boundaries</td><td>GRPO score-function update</td><td>Keep GRPO; only change when and where its scalar reward is measured</td></tr></tbody>
+      </table>
+    </div>
+    
+          </section>
+
+          <section id="pilot" class="section">
+            <p class="eyebrow">Pilot on completed runs</p>
+            <h2>The inner and held-out checkpoints disagree in all six runs</h2>
+            
+    <div class="table-wrap">
+      <table>
+        <caption><strong>Table 2.</strong> Retrospective pilot setup. This reuses completed trajectories and does not train a bilevel optimizer.</caption>
+        <thead><tr><th>Item</th><th>Choice</th></tr></thead>
+        <tbody><tr><td>Model family</td><td>WavLM CNN segmenter with the best char decoder</td></tr><tr><td>Policies</td><td>Bernoulli and first-order autoregressive</td></tr><tr><td>Seeds</td><td>3407, 3408, 3409 for each policy</td></tr><tr><td>Window</td><td>The 10 joint-RL epochs, epochs 3–12</td></tr><tr><td>Inner signals</td><td>Training decoder CE and recorded training reward</td></tr><tr><td>Outer signals</td><td>Dev-clean WER and dev-clean loss</td></tr><tr><td>Question</td><td>Do the inner-best and held-out-best epochs agree?</td></tr></tbody>
+      </table>
+    </div>
+    
+            <div class="stat-grid">
+              <div class="stat"><strong>0 / 6</strong><span>minimum train-CE epoch also has the best dev-clean WER</span></div>
+              <div class="stat"><strong>63.1 ± 0.6%</strong><span>training decoder CE reduction during joint RL</span></div>
+              <div class="stat"><strong>+0.42 ± 0.22</strong><span>dev-clean WER points lost by selecting minimum train CE</span></div>
+              <div class="stat"><strong>0.016 ± 0.010</strong><span>within-run dev kept-ratio span</span></div>
+            </div>
+
+            <figure class="analysis-figure">
+              <img src="../assets/bilevel-inner-outer-dynamics.png" alt="Six joint-RL trajectories showing steadily decreasing training decoder cross entropy but earlier, non-monotonic dev-clean WER minima.">
+              <figcaption><strong>Figure 1.</strong> Inner training behavior and held-out behavior across the six matched WavLM runs. White rings mark each run’s best dev-clean WER. The policy is Bernoulli in the top row and first-order autoregressive in the bottom row.</figcaption>
+            </figure>
+
+            
+    <div class="table-wrap">
+      <table>
+        <caption><strong>Table 3.</strong> Run-level checkpoint comparison. WER regret is dev-clean WER at the minimum-training-CE epoch minus the best dev-clean WER; lower is better.</caption>
+        <thead><tr><th>Policy</th><th>Seed</th><th>Min train CE epoch</th><th>Best dev WER epoch</th><th>Train CE drop</th><th>WER regret</th><th>Dev ρ span</th></tr></thead>
+        <tbody><tr><td>Bernoulli</td><td>3407</td><td>12</td><td>8</td><td>62.5%</td><td>+0.18</td><td>0.011</td></tr><tr><td>Bernoulli</td><td>3408</td><td>12</td><td>9</td><td>62.9%</td><td>+0.40</td><td>0.015</td></tr><tr><td>Bernoulli</td><td>3409</td><td>12</td><td>7</td><td>63.7%</td><td>+0.65</td><td>0.012</td></tr><tr><td>First-order AR</td><td>3407</td><td>12</td><td>7</td><td>62.4%</td><td>+0.31</td><td>0.036</td></tr><tr><td>First-order AR</td><td>3408</td><td>12</td><td>8</td><td>63.3%</td><td>+0.24</td><td>0.014</td></tr><tr><td>First-order AR</td><td>3409</td><td>12</td><td>7</td><td>63.7%</td><td>+0.71</td><td>0.008</td></tr></tbody>
+      </table>
+    </div>
+    
+            <div class="callout amber">
+              <strong>What the pilot does—and does not—show</strong>
+              <p>It shows a stable checkpoint-selection mismatch: training CE and the recorded reward are best at epoch 12 in all six runs, while dev-clean WER is best at epochs 7–9. Selecting by the inner signal costs 0.42 ± 0.22 WER points on average. The dev kept ratio moves by only 0.016 ± 0.010, so simple rate drift is unlikely to explain the pattern. The epoch-wise rank correlation is weak and noisy (-0.19 ± 0.36), so the stronger claim is disagreement of optima—not systematic anticorrelation.</p>
+            </div>
+          </section>
+
+          <section id="borrow" class="section">
+            <p class="eyebrow">Practical lessons from bilevel work</p>
+            <h2>Borrow the objective structure before the Hessians</h2>
+            
+    <div class="table-wrap">
+      <table>
+        <caption><strong>Table 4.</strong> Bilevel ideas that transfer to this project and ideas that should wait.</caption>
+        <thead><tr><th>Idea</th><th>Use now?</th><th>Reason</th></tr></thead>
+        <tbody><tr><td>Support/query split</td><td>Yes</td><td>Separates boundaries that fit one batch from boundaries that help the decoder generalize</td></tr><tr><td>One-step decoder lookahead</td><td>Yes, as a pilot</td><td>Tests the post-adaptation question while bounding memory and runtime</td></tr><tr><td>Policy-gradient outer update</td><td>Yes</td><td>Works with the deployed hard boundary sequence and existing GRPO machinery</td></tr><tr><td>CE + OPD distillation inner loss</td><td>After the CE pilot</td><td>OPD can make the temporary decoder step more stable without changing the outer definition</td></tr><tr><td>Full unrolling or implicit Hessians</td><td>Not first</td><td>Costly for a LoRA-adapted LLM and unnecessary for testing whether lookahead changes rollout rankings</td></tr><tr><td>DARTS-style soft boundaries</td><td>Separate later study</td><td>Changes hard mean pooling and adds a soft-to-hard deployment gap</td></tr></tbody>
+      </table>
+    </div>
+    
+            <p>The closest mechanical precedent is probabilistic bilevel coreset selection: sample a discrete subset, adapt an inner model, evaluate post-adaptation performance, and update selection probabilities with policy gradient. Here the discrete subset becomes a boundary sequence and GRPO remains the outer estimator.</p>
+            <p>Short unrolling is an approximation, not a claim that the decoder has converged. Its immediate value is diagnostic: if current-decoder and post-update rewards rank boundary rollouts differently, then adaptation is changing what the segmenter should prefer.</p>
+          </section>
+
+          <section id="opd" class="section">
+            <p class="eyebrow">Connection to the OPD proposal</p>
+            <h2>OPD and bilevel training solve different parts of the loop</h2>
+            <p>On-policy prefix distillation changes <em>how the decoder adapts</em> to sampled lower-rate prefixes. Bilevel training changes <em>how the segmenter is judged</em>: by the performance of that adapted decoder on held-out speech. They are complementary rather than competing ideas.</p>
+            <p>In a later arm, the inner support loss can be transcript CE plus oracle-char distillation. The outer query loss should remain ASR NLL or CER plus the kept-ratio penalty, so the segmenter is not rewarded merely for making the teacher easy to imitate.</p>
+          </section>
+
+          <section id="next-test" class="section">
+            <p class="eyebrow">Recommended prospective pilot</p>
+            <h2>First isolate held-out scoring from decoder lookahead</h2>
+            
+    <div class="table-wrap">
+      <table>
+        <caption><strong>Table 5.</strong> Small prospective comparison. All arms use the same initialization, sampled boundaries, rate penalty, batches, and update count.</caption>
+        <thead><tr><th>Arm</th><th>Segmenter reward</th><th>What it isolates</th></tr></thead>
+        <tbody><tr><td>A · Current</td><td>Current-decoder NLL on the same training batch</td><td>Existing joint-RL procedure</td></tr><tr><td>B · Held-out</td><td>Current-decoder NLL on a separate query batch</td><td>Effect of the support/query split alone</td></tr><tr><td>C · Bilevel lookahead</td><td>Query NLL after one temporary decoder step on support speech</td><td>Effect of scoring boundaries by how well the decoder can adapt to them</td></tr></tbody>
+      </table>
+    </div>
+    
+            <p>For each sampled rollout <span class="math">k</span>, clone only the trainable decoder projection and LoRA weights, take one support step, evaluate a query batch, then discard the temporary weights:</p>
+            <div class="equation">\[
+\begin{aligned}
+\theta&#x27;_k
+  &amp;=\theta-\alpha\nabla_{\theta}
+    \mathcal{L}^{S}_{\mathrm{inner}}(\theta,a_{S,k}), \\
+R^{\mathrm{lookahead}}_k
+  &amp;=-\mathcal{L}^{Q}_{\mathrm{outer}}(\theta&#x27;_k,a_{Q,k})
+    -\lambda_{\rho}\mathcal{P}_{\rho}(a_{Q,k}).
+\end{aligned}
+\]</div>
+            <ol class="steps">
+              <li><strong>Start from the current best configuration</strong><p>Use the WavLM CNN first-order AR segmenter, the best char decoder, and the existing rate band.</p></li>
+              <li><strong>Keep the diagnostic small</strong><p>Use two rollouts, one temporary decoder step, and a short matched run before any three-seed WER study. The first output is the rollout-rank agreement between the current and lookahead rewards.</p></li>
+              <li><strong>Separate the two causal questions</strong><p>Arm B tests whether held-out scoring alone helps. Arm C tests whether decoder adaptation adds information beyond that split.</p></li>
+              <li><strong>Advance only on a measurable signal</strong><p>Proceed to three seeds if lookahead changes rollout rankings consistently and improves held-out NLL without raising the kept ratio. Use WER only for checkpoint selection and final evaluation.</p></li>
+            </ol>
+          </section>
+
+          <section id="limits" class="section">
+            <p class="eyebrow">Limits</p>
+            <h2>This pilot diagnoses a mismatch; it does not establish a cure</h2>
+            <ul>
+              <li>The comparison is retrospective and follows trajectories produced by ordinary joint RL.</li>
+              <li>Epoch summaries mix decoder and segmenter changes, so they cannot identify which component caused each dev change.</li>
+              <li>Dev-clean WER is useful for selection but is not the differentiable outer loss used by a prospective method.</li>
+              <li>One-step lookahead favors boundaries that support fast adaptation; more steps may produce different rankings.</li>
+              <li>A support/query split increases variance and compute, so the gain must be compared at matched updates and reported with runtime.</li>
+            </ul>
+          </section>
+
+          <section id="references" class="section">
+            <p class="eyebrow">Primary sources</p>
+            <h2>References</h2>
+            <ol class="references">
+              <li>Franceschi et al. (2018). <a href="https://proceedings.mlr.press/v80/franceschi18a.html">Bilevel Programming for Hyperparameter Optimization and Meta-Learning</a>. ICML.</li>
+              <li>Shaban et al. (2019). <a href="https://proceedings.mlr.press/v89/shaban19a.html">Truncated Back-propagation for Bilevel Optimization</a>. AISTATS.</li>
+              <li>Lorraine, Vicol, and Duvenaud (2020). <a href="https://proceedings.mlr.press/v108/lorraine20a.html">Optimizing Millions of Hyperparameters by Implicit Differentiation</a>. AISTATS.</li>
+              <li>Liu, Simonyan, and Yang (2019). <a href="https://arxiv.org/abs/1806.09055">DARTS: Differentiable Architecture Search</a>. ICLR.</li>
+              <li>Zela et al. (2020). <a href="https://openreview.net/forum?id=H1gDNyrKDS">Understanding and Robustifying Differentiable Architecture Search</a>. ICLR.</li>
+              <li>Ren et al. (2018). <a href="https://proceedings.mlr.press/v80/ren18a.html">Learning to Reweight Examples for Robust Deep Learning</a>. ICML.</li>
+              <li>Zhou et al. (2023). <a href="https://arxiv.org/abs/2301.09880">Probabilistic Bilevel Coreset Selection</a>. arXiv:2301.09880.</li>
+              <li>Yang, Gao, and Yuan (2025). <a href="https://proceedings.mlr.press/v258/yang25g.html">Bilevel Reinforcement Learning via the Development of Hyper-gradient without Lower-Level Convexity</a>. AISTATS.</li>
+            </ol>
+          </section>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">JSALT 2026 · Learned dynamic downsampling · Research analysis</div>
+  </footer>
+</body>
+</html>

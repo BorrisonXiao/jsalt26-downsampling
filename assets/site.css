@@ -212,6 +212,17 @@ th, td { padding: 12px 14px; border-bottom: 1px solid var(--border); text-align:
 tr:last-child td { border-bottom: 0; }
 th { color: var(--muted); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; }
 
+.analysis-figure { margin: 28px 0; }
+.analysis-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: white;
+}
+.analysis-figure figcaption { margin-top: 10px; color: var(--muted); font-size: 13px; }
+
 .steps { list-style: none; margin: 24px 0; padding: 0; counter-reset: step; }
 .steps li { position: relative; margin: 0 0 14px; padding: 18px 20px 18px 64px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .steps li::before {
