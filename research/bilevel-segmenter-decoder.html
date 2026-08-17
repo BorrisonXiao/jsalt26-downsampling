@@ -30,9 +30,9 @@
   <main>
     <header class="hero">
       <div class="container">
-        <p class="eyebrow">Research analysis · 11 August 2026</p>
+        <p class="eyebrow">Research analysis · updated 17 August 2026</p>
         <h1>Does bilevel optimization fit our segmenter–decoder problem?</h1>
-        <p class="lede">Yes as a description of the goal: choose boundaries that help a decoder after it adapts, not only boundaries that score well under its current parameters. A six-run pilot finds a real inner-versus-held-out mismatch; the next step is a small one-step-lookahead test.</p>
+        <p class="lede">Yes as a description of the goal: choose boundaries that help a decoder after it adapts, not only boundaries that score well under its current parameters. The earlier six-run pilot still shows a training-versus-held-out mismatch. The prospective test should now use the WavLM local-history Transformer-AR + BiGRU configuration, while keeping the CNN first-order system as a stable control.</p>
         <div class="button-row">
           <a class="button primary" href="#next-test">Jump to the proposed test</a>
           <a class="button" href="./">← All analyses</a>
@@ -46,6 +46,7 @@
         <aside class="toc" aria-label="Table of contents">
           <strong>On this page</strong>
           <a href="#verdict">Verdict</a>
+          <a href="#current-system">Current system</a>
           <a href="#mapping">Problem mapping</a>
           <a href="#pilot">Retrospective pilot</a>
           <a href="#borrow">What to borrow</a>
@@ -61,24 +62,40 @@
             <h2>The formulation applies; the expensive machinery may not be needed</h2>
             <div class="callout">
               <strong>Recommended interpretation</strong>
-              <p>Treat decoder adaptation as the inner problem and held-out ASR plus the audio-frequency penalty as the outer problem. Keep hard boundary sampling and GRPO. For the first test, change the reward to measure query loss after one temporary decoder update.</p>
+              <p>Treat decoder adaptation on support speech as the inner problem and query ASR plus the audio-frequency penalty as the outer problem. Keep hard boundary sampling, K=4, and GRPO. For the first test, change the reward to measure query loss after one temporary decoder update.</p>
             </div>
             <p>The important distinction is temporal. The current segmenter is rewarded for boundaries that the <em>current</em> decoder likes. The scientific goal is closer to boundaries that permit a decoder to learn and generalize well. Those rankings can differ.</p>
-            <p>This does <strong>not</strong> imply that a full second-order bilevel optimizer is the next move. A support/query split and a one-step decoder lookahead test the central idea while preserving the current discrete policy and deployment path.</p>
+            <p>This does <strong>not</strong> imply that a full second-order bilevel optimizer is the next move. A support/query split plus a one-step decoder lookahead tests the central idea while preserving the current discrete policy and inference path.</p>
+          </section>
+
+          <section id="current-system" class="section">
+            <p class="eyebrow">Current empirical reference</p>
+            <h2>The clean-speech reference has changed; the robustness conclusion has not</h2>
+            <div class="table-wrap">
+      <table>
+        <caption><strong>Table 1.</strong> Current WavLM reference systems. WER values are mean ± sample SD over seeds 3407/3408/3409; lower is better. The local-history Transformer-AR + BiGRU system has the lowest replicated test-clean mean, while its test-other variance remains large.</caption>
+        <thead><tr><th>System</th><th>Audio-token frequency</th><th>Test-clean WER</th><th>Test-other WER</th><th>Role in the bilevel study</th></tr></thead>
+        <tbody><tr><td>Oracle char boundaries + char decoder</td><td>14.6 Hz</td><td>5.03 ± 0.42</td><td>8.07 ± 0.43</td><td>Reference for boundary quality; not a learned policy arm</td></tr><tr><td>CNN segmenter · first-order AR · mean pooling · char decoder</td><td>11.7 Hz</td><td>5.06 ± 0.18</td><td>9.55 ± 0.17</td><td>Faster, more stable control</td></tr><tr><td>Local-history Transformer AR · mean pooling · char decoder</td><td>11.3 Hz</td><td>5.67 ± 1.00</td><td>9.95 ± 0.65</td><td>Matched pooling control</td></tr><tr><td>Local-history Transformer AR · BiGRU residual pooling · char decoder</td><td>10.7 Hz</td><td>4.92 ± 0.13</td><td>9.66 ± 1.18</td><td>Primary clean-speech configuration; robustness is not established</td></tr></tbody>
+      </table>
+    </div>
+            <div class="callout amber">
+              <strong>How this changes the bilevel pilot</strong>
+              <p>Use the local-history Transformer-AR + BiGRU system for the main diagnostic because it has the lowest replicated test-clean mean. Do not treat it as an unqualified overall winner: its 1.18-point test-other sample SD is much larger than the CNN first-order control’s 0.17. The pilot should therefore retain the CNN system as a cheaper stability control and report dev-clean and dev-other separately.</p>
+            </div>
           </section>
 
           <section id="mapping" class="section">
             <p class="eyebrow">Problem mapping</p>
             <h2>Our current loop is joint training, not bilevel training</h2>
-            <p>Let <span class="math">φ</span> be segmenter parameters, <span class="math">π<sub>φ</sub></span> the boundary policy, <span class="math">a</span> a hard boundary sequence, and <span class="math">θ</span> the trainable decoder projection and LoRA parameters. The current sampled reward has the form:</p>
+            <p>Let \(\phi\) be segmenter parameters, \(\pi_\phi\) the boundary policy, \(a\) a hard boundary sequence, and \(	heta\) the trainable decoder projection and LoRA parameters. The current sampled reward has the form:</p>
             <div class="equation">\[
 R_{\mathrm{current}}(a;\theta)
   =-\mathcal{L}_{\mathrm{NLL}}(\theta;a)
    -\lambda_{f}\mathcal{P}_{f}(a),
 \qquad f(a)=50N(a)/T\;\mathrm{Hz}.
 \]</div>
-            <p>Here <span class="math">f(a)</span> is the decoder-side audio-token frequency: the 50 Hz encoder frame rate multiplied by the fraction of frames retained as pooled tokens. Lower Hz means stronger compression.</p>
-            <p>The reward is detached; the segmenter receives a GRPO update, while decoder CE updates <span class="math">θ</span>. Both happen in the same loop. A bilevel statement instead asks how well the decoder performs after adapting to the boundary distribution:</p>
+            <p>Here \(f(a)\) is the decoder-side audio-token frequency: the 50 Hz encoder frame rate multiplied by the fraction of frames retained as pooled tokens. Lower Hz means stronger compression.</p>
+            <p>The reward is detached; the segmenter receives a GRPO update, while decoder CE updates \(	heta\). Both happen in the same loop. A bilevel statement instead asks how well the decoder performs after adapting to the boundary distribution:</p>
             <div class="equation">\[
 \begin{aligned}
 \theta^{\star}(\phi)
@@ -93,30 +110,26 @@ R_{\mathrm{current}}(a;\theta)
     \right].
 \end{aligned}
 \]</div>
-            <p>The support/query distinction matters: support speech trains the temporary decoder, and separate query speech judges whether the resulting update generalizes.</p>
-            
-    <div class="table-wrap">
+            <p><strong>Support and query describe two roles within training.</strong> The support batch is the speech used for the temporary decoder update. The query batch is different training speech used to score that adapted decoder and update the segmenter. They can be two disjoint parts of a minibatch; neither is LibriSpeech test-clean or test-other.</p>
+            <div class="table-wrap">
       <table>
-        <caption><strong>Table 1.</strong> The current loop and the proposed bilevel view. S is an inner support batch; Q is a separate outer query batch.</caption>
+        <caption><strong>Table 2.</strong> The current loop and the proposed bilevel view. S is a support batch used for temporary decoder adaptation; Q is a separate query batch used to judge the adapted decoder and update the segmenter.</caption>
         <thead><tr><th>Part</th><th>Current joint RL</th><th>Bilevel version</th></tr></thead>
-        <tbody><tr><td>Decoder</td><td>Updated by transcript CE on the training stream</td><td>Temporarily adapted on support speech for each sampled boundary policy</td></tr><tr><td>Segmenter score</td><td>NLL from the decoder before it adapts to the sampled boundaries</td><td>Query loss after the temporary decoder adaptation</td></tr><tr><td>Data split</td><td>Decoder update and segmenter reward come from the same training stream</td><td>Decoder adapts on S; the segmenter is judged on held-out Q</td></tr><tr><td>Discrete boundaries</td><td>GRPO score-function update</td><td>Keep GRPO; only change when and where its scalar reward is measured</td></tr></tbody>
+        <tbody><tr><td>Decoder</td><td>Updated by transcript CE on the training stream</td><td>Temporarily adapted on support speech for each sampled boundary policy</td></tr><tr><td>Segmenter score</td><td>NLL from the decoder before it adapts to the sampled boundaries</td><td>Query loss after the temporary decoder adaptation</td></tr><tr><td>Data split</td><td>Decoder update and segmenter reward come from the same training stream</td><td>The decoder adapts on S; the segmenter is judged on held-out Q</td></tr><tr><td>Discrete boundaries</td><td>GRPO score-function update</td><td>Keep GRPO; only change when and where its scalar reward is measured</td></tr></tbody>
       </table>
     </div>
-    
           </section>
 
           <section id="pilot" class="section">
             <p class="eyebrow">Pilot on completed runs</p>
             <h2>The inner and held-out checkpoints disagree in all six runs</h2>
-            
-    <div class="table-wrap">
+            <div class="table-wrap">
       <table>
-        <caption><strong>Table 2.</strong> Retrospective pilot setup. This reuses completed trajectories and does not train a bilevel optimizer.</caption>
+        <caption><strong>Table 3.</strong> Retrospective pilot setup. This reuses completed trajectories and does not train a bilevel optimizer. It is historical evidence from the earlier CNN study, not a re-analysis of the Transformer-AR + BiGRU runs.</caption>
         <thead><tr><th>Item</th><th>Choice</th></tr></thead>
         <tbody><tr><td>Model family</td><td>WavLM CNN segmenter with the best char decoder</td></tr><tr><td>Policies</td><td>Bernoulli and first-order autoregressive</td></tr><tr><td>Seeds</td><td>3407, 3408, 3409 for each policy</td></tr><tr><td>Window</td><td>The 10 joint-RL epochs, epochs 3–12</td></tr><tr><td>Inner signals</td><td>Training decoder CE and recorded training reward</td></tr><tr><td>Outer signals</td><td>Dev-clean WER and dev-clean loss</td></tr><tr><td>Question</td><td>Do the inner-best and held-out-best epochs agree?</td></tr></tbody>
       </table>
     </div>
-    
             <div class="stat-grid">
               <div class="stat"><strong>0 / 6</strong><span>minimum train-CE epoch also has the best dev-clean WER</span></div>
               <div class="stat"><strong>63.1 ± 0.6%</strong><span>training decoder CE reduction during joint RL</span></div>
@@ -129,15 +142,13 @@ R_{\mathrm{current}}(a;\theta)
               <figcaption><strong>Figure 1.</strong> Inner training behavior and held-out behavior across the six matched WavLM runs. White rings mark each run’s best dev-clean WER. The policy is Bernoulli in the top row and first-order autoregressive in the bottom row.</figcaption>
             </figure>
 
-            
-    <div class="table-wrap">
+            <div class="table-wrap">
       <table>
-        <caption><strong>Table 3.</strong> Run-level checkpoint comparison. WER regret is dev-clean WER at the minimum-training-CE epoch minus the best dev-clean WER; lower is better.</caption>
+        <caption><strong>Table 4.</strong> Run-level checkpoint comparison. WER regret is dev-clean WER at the minimum-training-CE epoch minus the best dev-clean WER; lower is better.</caption>
         <thead><tr><th>Policy</th><th>Seed</th><th>Min train CE epoch</th><th>Best dev WER epoch</th><th>Train CE drop</th><th>WER regret</th><th>Dev audio-frequency span</th></tr></thead>
         <tbody><tr><td>Bernoulli</td><td>3407</td><td>12</td><td>8</td><td>62.5%</td><td>+0.18</td><td>0.5 Hz</td></tr><tr><td>Bernoulli</td><td>3408</td><td>12</td><td>9</td><td>62.9%</td><td>+0.40</td><td>0.7 Hz</td></tr><tr><td>Bernoulli</td><td>3409</td><td>12</td><td>7</td><td>63.7%</td><td>+0.65</td><td>0.6 Hz</td></tr><tr><td>First-order AR</td><td>3407</td><td>12</td><td>7</td><td>62.4%</td><td>+0.31</td><td>1.8 Hz</td></tr><tr><td>First-order AR</td><td>3408</td><td>12</td><td>8</td><td>63.3%</td><td>+0.24</td><td>0.7 Hz</td></tr><tr><td>First-order AR</td><td>3409</td><td>12</td><td>7</td><td>63.7%</td><td>+0.71</td><td>0.4 Hz</td></tr></tbody>
       </table>
     </div>
-    
             <div class="callout amber">
               <strong>What the pilot does—and does not—show</strong>
               <p>It shows a stable checkpoint-selection mismatch: training CE and the recorded reward are best at epoch 12 in all six runs, while dev-clean WER is best at epochs 7–9. Selecting by the inner signal costs 0.42 ± 0.22 WER points on average. Dev audio-token frequency moves by only 0.8 ± 0.5 Hz, so simple frequency drift is unlikely to explain the pattern. The epoch-wise rank correlation is weak and noisy (-0.19 ± 0.36), so the stronger claim is disagreement of optima—not systematic anticorrelation.</p>
@@ -147,15 +158,13 @@ R_{\mathrm{current}}(a;\theta)
           <section id="borrow" class="section">
             <p class="eyebrow">Practical lessons from bilevel work</p>
             <h2>Borrow the objective structure before the Hessians</h2>
-            
-    <div class="table-wrap">
+            <div class="table-wrap">
       <table>
-        <caption><strong>Table 4.</strong> Bilevel ideas that transfer to this project and ideas that should wait.</caption>
+        <caption><strong>Table 5.</strong> Bilevel ideas that transfer to this project and ideas that should wait.</caption>
         <thead><tr><th>Idea</th><th>Use now?</th><th>Reason</th></tr></thead>
-        <tbody><tr><td>Support/query split</td><td>Yes</td><td>Separates boundaries that fit one batch from boundaries that help the decoder generalize</td></tr><tr><td>One-step decoder lookahead</td><td>Yes, as a pilot</td><td>Tests the post-adaptation question while bounding memory and runtime</td></tr><tr><td>Policy-gradient outer update</td><td>Yes</td><td>Works with the deployed hard boundary sequence and existing GRPO machinery</td></tr><tr><td>CE + OPD distillation inner loss</td><td>After the CE pilot</td><td>OPD can make the temporary decoder step more stable without changing the outer definition</td></tr><tr><td>Full unrolling or implicit Hessians</td><td>Not first</td><td>Costly for a LoRA-adapted LLM and unnecessary for testing whether lookahead changes rollout rankings</td></tr><tr><td>DARTS-style soft boundaries</td><td>Separate later study</td><td>Changes hard mean pooling and adds a soft-to-hard deployment gap</td></tr></tbody>
+        <tbody><tr><td>Support/query split</td><td>Yes</td><td>Separates boundaries that fit one batch from boundaries that help the decoder generalize</td></tr><tr><td>One-step decoder lookahead</td><td>Yes, as a pilot</td><td>Tests the post-adaptation question while bounding memory and runtime</td></tr><tr><td>Policy-gradient outer update</td><td>Yes</td><td>Works with the actual hard boundary sequence and existing GRPO machinery</td></tr><tr><td>CE + OPD distillation inner loss</td><td>After the CE pilot</td><td>OPD can make the temporary decoder step more stable without changing the outer definition</td></tr><tr><td>Full unrolling or implicit Hessians</td><td>Not first</td><td>Costly for a LoRA-adapted LLM and unnecessary for testing whether lookahead changes rollout rankings</td></tr><tr><td>DARTS-style soft boundaries</td><td>Separate later study</td><td>Changes hard mean pooling and adds a soft-to-hard deployment gap</td></tr></tbody>
       </table>
     </div>
-    
             <p>The closest mechanical precedent is probabilistic bilevel coreset selection: sample a discrete subset, adapt an inner model, evaluate post-adaptation performance, and update selection probabilities with policy gradient. Here the discrete subset becomes a boundary sequence and GRPO remains the outer estimator.</p>
             <p>Short unrolling is an approximation, not a claim that the decoder has converged. Its immediate value is diagnostic: if current-decoder and post-update rewards rank boundary rollouts differently, then adaptation is changing what the segmenter should prefer.</p>
           </section>
@@ -170,16 +179,14 @@ R_{\mathrm{current}}(a;\theta)
           <section id="next-test" class="section">
             <p class="eyebrow">Recommended prospective pilot</p>
             <h2>First isolate held-out scoring from decoder lookahead</h2>
-            
-    <div class="table-wrap">
+            <div class="table-wrap">
       <table>
-        <caption><strong>Table 5.</strong> Small prospective comparison. All arms use the same initialization, sampled boundaries, rate penalty, batches, and update count.</caption>
+        <caption><strong>Table 6.</strong> Revised prospective comparison. All arms reuse the same K=4 rollouts, initialization, audio-frequency penalty, data batches, and update count. Only the reward measurement or temporary adaptation scope changes.</caption>
         <thead><tr><th>Arm</th><th>Segmenter reward</th><th>What it isolates</th></tr></thead>
-        <tbody><tr><td>A · Current</td><td>Current-decoder NLL on the same training batch</td><td>Existing joint-RL procedure</td></tr><tr><td>B · Held-out</td><td>Current-decoder NLL on a separate query batch</td><td>Effect of the support/query split alone</td></tr><tr><td>C · Bilevel lookahead</td><td>Query NLL after one temporary decoder step on support speech</td><td>Effect of scoring boundaries by how well the decoder can adapt to them</td></tr></tbody>
+        <tbody><tr><td>A · Current</td><td>Current-decoder NLL on the same training batch</td><td>Existing joint-RL procedure</td></tr><tr><td>B · Held-out</td><td>Current-decoder NLL on a separate query batch</td><td>Effect of the support/query split alone</td></tr><tr><td>C · Decoder lookahead</td><td>Query NLL after one temporary decoder step on support speech</td><td>Whether decoder adaptation changes which boundary rollout is preferred</td></tr><tr><td>D · Decoder + pooler lookahead</td><td>Query NLL after temporarily adapting the decoder and BiGRU residual branch on support speech</td><td>Whether the new order-aware pooler must adapt jointly with the decoder</td></tr></tbody>
       </table>
     </div>
-    
-            <p>For each sampled rollout <span class="math">k</span>, clone only the trainable decoder projection and LoRA weights, take one support step, evaluate a query batch, then discard the temporary weights:</p>
+            <p>For each sampled rollout \(k\), clone only the trainable decoder projection and LoRA weights, take one support step, evaluate a query batch, then discard the temporary weights:</p>
             <div class="equation">\[
 \begin{aligned}
 \theta&#x27;_k
@@ -191,10 +198,11 @@ R^{\mathrm{lookahead}}_k
 \end{aligned}
 \]</div>
             <ol class="steps">
-              <li><strong>Start from the current best configuration</strong><p>Use the WavLM CNN first-order AR segmenter, the best char decoder, and the existing rate band.</p></li>
-              <li><strong>Keep the diagnostic small</strong><p>Use two rollouts, one temporary decoder step, and a short matched run before any three-seed WER study. The first output is the rollout-rank agreement between the current and lookahead rewards.</p></li>
-              <li><strong>Separate the two causal questions</strong><p>Arm B tests whether held-out scoring alone helps. Arm C tests whether decoder adaptation adds information beyond that split.</p></li>
-              <li><strong>Advance only on a measurable signal</strong><p>Proceed to three seeds if lookahead changes rollout rankings consistently and improves held-out NLL without raising audio-token frequency. Use WER only for checkpoint selection and final evaluation.</p></li>
+              <li><strong>Use the current clean-speech reference</strong><p>Start from WavLM features, the local-history Transformer-AR segmenter with a 64-frame causal window, BiGRU residual pooling, and the best char decoder. Reuse the combined K=4 rollout path and the existing audio-frequency band.</p></li>
+              <li><strong>Keep K fixed; shorten the run instead</strong><p>Use K=4 in every arm, one temporary adaptation step, and a small matched number of batches before any full three-seed WER study. The first output is rollout-rank agreement between current-decoder and lookahead rewards.</p></li>
+              <li><strong>Adapt the decoder before the BiGRU</strong><p>Arm C temporarily updates only the decoder projection and LoRA weights while the BiGRU is fixed. This isolates decoder prefix adaptation. Run Arm D only if Arm C changes rollout rankings; D adds the BiGRU residual branch to the temporary update.</p></li>
+              <li><strong>Retain a stable control and harder-speech guardrail</strong><p>Repeat the short diagnostic with the CNN first-order system. Report dev-clean and dev-other separately, and do not advance a setting that improves clean speech by sacrificing dev-other stability.</p></li>
+              <li><strong>Advance only on a measurable signal</strong><p>Proceed to three seeds if lookahead changes rollout rankings consistently and improves query NLL without raising audio-token frequency. Use held-out WER only for checkpoint selection and final evaluation.</p></li>
             </ol>
           </section>
 
@@ -207,6 +215,7 @@ R^{\mathrm{lookahead}}_k
               <li>Dev-clean WER is useful for selection but is not the differentiable outer loss used by a prospective method.</li>
               <li>One-step lookahead favors boundaries that support fast adaptation; more steps may produce different rankings.</li>
               <li>A support/query split increases variance and compute, so the gain must be compared at matched updates and reported with runtime.</li>
+              <li>The 4.92 test-clean result does not settle harder-speech behavior: the corresponding test-other mean is 9.66 with 1.18 sample SD.</li>
             </ul>
           </section>
 
