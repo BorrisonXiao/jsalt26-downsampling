@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Literature review and experimental recommendations for reducing the kept ratio of learned speech segmentation while retaining ASR quality.">
-  <title>Decoder–segmenter bias and lower kept ratios · JSALT 2026</title>
+  <meta name="description" content="Literature review and experimental recommendations for reducing the audio-token frequency of learned speech segmentation while retaining ASR quality.">
+  <title>Decoder–segmenter bias at lower audio-token frequencies · JSALT 2026</title>
   <link rel="stylesheet" href="../assets/site.css">
   <script>
     window.MathJax = {
@@ -31,8 +31,8 @@
     <header class="hero">
       <div class="container">
         <p class="eyebrow">Research analysis · 11 August 2026</p>
-        <h1>How low can the kept ratio go?</h1>
-        <p class="lede">A careful test of the decoder–segmenter bias hypothesis, the closest prior literature, and a concrete path toward lower-rate acoustic prefixes without sacrificing ASR.</p>
+        <h1>How low can the audio-token frequency go?</h1>
+        <p class="lede">A careful test of the decoder–segmenter bias hypothesis, the closest prior literature, and a concrete path toward lower-frequency acoustic prefixes without sacrificing ASR.</p>
         <div class="button-row">
           <a class="button primary" href="#recommendations">Jump to experiments</a>
           <a class="button" href="./">← All analyses</a>
@@ -61,26 +61,26 @@
             <h2>Character warm-up is helping so far</h2>
             <div class="callout">
               <strong>Verdict on the hypothesis</strong>
-              <p>A decoder-rate mismatch is plausible below the rates tested so far, but the report does not show that character-level warm-up is harmful. At approximately ρ = 0.23, character initialization is the strongest controlled gain.</p>
+              <p>A decoder-frequency mismatch is plausible below the frequencies tested so far, but the report does not show that character-level warm-up is harmful. At approximately 11.5 Hz, character initialization is the strongest controlled gain.</p>
             </div>
-            <p>The more precise hypothesis is an <strong>acoustic-prefix interface shift</strong>. Lowering the rate changes the prefix length, text-token positions, segment duration, pooled-vector statistics, boundary geometry, and the amount of information each prefix token must carry. “Frequency bias” may be one component of this combined shift.</p>
+            <p>The more precise hypothesis is an <strong>acoustic-prefix interface shift</strong>. Lowering audio-token frequency changes the prefix length, text-token positions, segment duration, pooled-vector statistics, boundary geometry, and the amount of information each prefix token must carry. “Frequency bias” may be one component of this combined shift.</p>
           </section>
 
           <section id="evidence" class="section">
             <p class="eyebrow">What the report already establishes</p>
             <h2>Three observations constrain the explanation</h2>
             <div class="stat-grid">
-              <div class="stat"><strong>5.16 / 9.44</strong><span>Char-initialized decoder, learned ρ = 0.234</span></div>
-              <div class="stat"><strong>6.48 / 10.04</strong><span>From-scratch decoder, learned ρ = 0.242</span></div>
-              <div class="stat"><strong>5.49 / 9.21</strong><span>Phone alignment at ρ = 0.210</span></div>
-              <div class="stat"><strong>6.16 / 10.17</strong><span>Fixed k = 5 at ρ = 0.200</span></div>
+              <div class="stat"><strong>5.16 / 9.44</strong><span>Char-initialized decoder, learned frequency = 11.7 Hz</span></div>
+              <div class="stat"><strong>6.48 / 10.04</strong><span>From-scratch decoder, learned frequency = 12.1 Hz</span></div>
+              <div class="stat"><strong>5.49 / 9.21</strong><span>Phone alignment at 10.5 Hz</span></div>
+              <div class="stat"><strong>6.16 / 10.17</strong><span>Fixed k = 5 at 10.0 Hz</span></div>
             </div>
             <ol>
               <li><strong>Decoder initialization helps.</strong> With the same segmenter family and pooling setup, the character-initialized decoder improves clean WER by 1.32 points and other WER by 0.60 points over training from scratch.</li>
-              <li><strong>Boundary geometry matters independently of rate.</strong> Phone-aligned boundaries beat fixed k = 5 at almost the same kept ratio.</li>
+              <li><strong>Boundary geometry matters independently of frequency.</strong> Phone-aligned boundaries beat fixed k = 5 at almost the same audio-token frequency.</li>
               <li><strong>RL drift is currently more damaging than the cold mismatch.</strong> With one fixed decoder, dev-clean WER changes from 4.27 with oracle-character boundaries to 9.14 with cold learned boundaries and 17.37 after RL.</li>
             </ol>
-            <p>The fixed k = 8 result is also informative: at ρ = 0.125 it reaches 6.41 clean but 11.10 other. The system has not hit a clean-speech information cliff, while difficult acoustics are much more sensitive to aggressive compression.</p>
+            <p>The fixed k = 8 result is also informative: at 6.3 Hz it reaches 6.41 clean but 11.10 other. The system has not hit a clean-speech information cliff, while difficult acoustics are much more sensitive to aggressive compression.</p>
           </section>
 
           <section id="mechanisms" class="section">
@@ -95,17 +95,17 @@
               <div class="card">
                 <span class="tag blue">Statistics</span>
                 <h3>Longer mean-pooled segments</h3>
-                <p>As segment length n grows, a mean typically has lower variance. The projection receives a rate-dependent change in norm and covariance even before considering lost phonetic detail.</p>
+                <p>As segment length n grows, a mean typically has lower variance. The projection receives a frequency-dependent change in norm and covariance even before considering lost phonetic detail.</p>
               </div>
               <div class="card">
                 <span class="tag green">Geometry</span>
                 <h3>Different grouping boundaries</h3>
-                <p>Two policies with the same count can merge different transitions. The phone-versus-fixed result and boundary-swap audit show that rate alone cannot explain WER.</p>
+                <p>Two policies with the same frequency can merge different transitions. The phone-versus-fixed result and boundary-swap audit show that frequency alone cannot explain WER.</p>
               </div>
               <div class="card">
                 <span class="tag">Capacity</span>
                 <h3>More content per token</h3>
-                <p>At ρ = 0.125, one token averages eight 50 Hz frames, or 160 ms. The projection and decoder must recover several linguistic events from one order-reduced vector.</p>
+                <p>At 6.3 Hz, one token averages eight 50 Hz frames, or 160 ms. The projection and decoder must recover several linguistic events from one order-reduced vector.</p>
               </div>
             </div>
           </section>
@@ -128,7 +128,7 @@
             <div class="card">
               <span class="tag amber">Decoder-only ASR</span>
               <h3>Conservative confidence-aware removal is robust</h3>
-              <p>CJST compares several CTC compression rules before a decoder-only model. Removing frames only when blank probability exceeds 0.95 gives 2.22 / 4.94 LibriSpeech WER at acoustic-prompt/text ratio 1.22. A more compact combined collapse reaches ratio 1.08 with slightly worse 2.27 / 5.04 WER. These ratios are not the same as this project's frame-kept ratio, but the quality–compactness trade-off is directly relevant.</p>
+              <p>CJST compares several CTC compression rules before a decoder-only model. Removing frames only when blank probability exceeds 0.95 gives 2.22 / 4.94 LibriSpeech WER at acoustic-prompt/text ratio 1.22. A more compact combined collapse reaches ratio 1.08 with slightly worse 2.27 / 5.04 WER. Those paper-specific prompt/text ratios are not the same as this project's audio-token frequency in Hz, but the quality–compactness trade-off is directly relevant.</p>
               <p><a href="https://arxiv.org/html/2411.07607">Zhou et al., ICASSP 2025 ↗</a></p>
             </div>
             <div class="card">
@@ -145,7 +145,7 @@
             </div>
             <div class="callout amber">
               <strong>Literature gap</strong>
-              <p>No reviewed work cleanly trains a decoder-only acoustic-prefix model at one aligned rate and then isolates its transfer to several lower, correct rates. A controlled cross-rate study would be both diagnostically useful and potentially publishable.</p>
+              <p>No reviewed work cleanly trains a decoder-only acoustic-prefix model at one aligned frequency and then isolates its transfer to several lower, correct frequencies. A controlled cross-frequency study would be both diagnostically useful and potentially publishable.</p>
             </div>
           </section>
 
@@ -154,8 +154,8 @@
             <h2>Diagnose before launching another RL sweep</h2>
             <ol class="steps">
               <li>
-                <strong>Build an alignment-constrained cross-rate matrix</strong>
-                <p>Starting from character-aligned segments, merge adjacent units to hit ρ ∈ {0.293, 0.23, 0.20, 0.167, 0.125}. Compare zero-shot character initialization, target-rate adaptation, target-rate training from scratch, and one multi-rate decoder. Freeze the segmenter.</p>
+                <strong>Build an alignment-constrained cross-frequency matrix</strong>
+                <p>Starting from character-aligned segments, merge adjacent units to hit audio-token frequencies {14.6, 11.5, 10.0, 8.3, 6.3} Hz. Compare zero-shot character initialization, target-frequency adaptation, target-frequency training from scratch, and one multi-frequency decoder. Freeze the segmenter.</p>
               </li>
               <li>
                 <strong>Ablate prefix position IDs</strong>
@@ -166,8 +166,8 @@
                 <p>Append log segment duration; normalize pooled vectors; compare plain mean with confidence-weighted mean and a compact [mean, standard deviation, endpoint difference, duration] representation.</p>
               </li>
               <li>
-                <strong>Warm the decoder across rates</strong>
-                <p>Use a sandwich batch containing the character rate, the lowest target rate, and a random intermediate rate. Start with ρ = 0.167 and 0.125 before attempting 0.10.</p>
+                <strong>Warm the decoder across frequencies</strong>
+                <p>Use a sandwich batch containing the character frequency, the lowest target frequency, and a random intermediate frequency. Start with 8.3 and 6.3 Hz before attempting 5.0 Hz.</p>
               </li>
               <li>
                 <strong>Replace frame Bernoulli actions with boundary merging</strong>
@@ -181,14 +181,14 @@
 
             <div class="table-wrap">
               <table>
-                <caption><strong>Table 1.</strong> Cross-rate outcomes, their diagnostic interpretation, and the corresponding next experiment.</caption>
-                <thead><tr><th>Cross-rate outcome</th><th>Diagnosis</th><th>Next action</th></tr></thead>
+                <caption><strong>Table 1.</strong> Cross-frequency outcomes, their diagnostic interpretation, and the corresponding next experiment.</caption>
+                <thead><tr><th>Cross-frequency outcome</th><th>Diagnosis</th><th>Next action</th></tr></thead>
                 <tbody>
-                  <tr><td>Target-adapted succeeds; zero-shot fails</td><td>Decoder interface/rate bias</td><td>Adopt multi-rate warm-up or a short target-rate adaptation phase</td></tr>
+                  <tr><td>Target-adapted succeeds; zero-shot fails</td><td>Decoder interface/frequency bias</td><td>Adopt multi-frequency warm-up or a short target-frequency adaptation phase</td></tr>
                   <tr><td>Adapted and scratch models both fail</td><td>Pooling or information-capacity limit</td><td>Improve aggregation, duration encoding, or decoder capacity</td></tr>
                   <tr><td>Fixed merged boundaries succeed; learned policy fails</td><td>Boundary geometry and policy optimization</td><td>Use candidate merging, local supervision, and constrained actions</td></tr>
                   <tr><td>Fixed text positions recover performance</td><td>RoPE/prefix-offset confound</td><td>Make explicit positions part of the model interface</td></tr>
-                  <tr><td>Clean holds while other degrades</td><td>Budget allocation fails on hard speech</td><td>Allow per-utterance rates with max-duration and tail-risk controls</td></tr>
+                  <tr><td>Clean holds while other degrades</td><td>Budget allocation fails on hard speech</td><td>Allow per-utterance frequencies with max-duration and tail-risk controls</td></tr>
                 </tbody>
               </table>
             </div>
@@ -197,28 +197,28 @@
           <section id="objective" class="section">
             <p class="eyebrow">Mathematical formulation</p>
             <h2>Separate decoder bias from compression loss</h2>
-            <p>Let \(s_r\) be a fixed segmentation at kept ratio \(r\), let \(\theta_c\) be the character-trained decoder, and let \(\mathcal{L}(\theta,s)\) be the decoder loss under segmentation \(s\). The decoder adaptation gap is:</p>
+            <p>Let \(s_f\) be a fixed segmentation at audio-token frequency \(f\) in Hz, let \(\theta_c\) be the character-trained decoder, and let \(\mathcal{L}(\theta,s)\) be the decoder loss under segmentation \(s\). The decoder adaptation gap is:</p>
             <div class="equation">
               \[
-              B(r)=\mathcal{L}(\theta_c,s_r)-\min_{\theta}\mathcal{L}(\theta,s_r).
+              B(f)=\mathcal{L}(\theta_c,s_f)-\min_{\theta}\mathcal{L}(\theta,s_f).
               \]
             </div>
             <p>The best-achieved compression gap is:</p>
             <div class="equation">
               \[
-              C(r)=\min_{\theta}\mathcal{L}(\theta,s_r)
+              C(f)=\min_{\theta}\mathcal{L}(\theta,s_f)
               -\min_{\theta}\mathcal{L}(\theta,s_{\mathrm{char}}).
               \]
             </div>
             <p>The fixed-boundary matrix estimates these two quantities. Current joint experiments change segmentation, rate, pooling distribution, and decoder parameters together, so they cannot identify either term.</p>
 
             <details>
-              <summary>Use a constrained rate objective instead of a fixed band</summary>
-              <p>Let \(\pi\) be the segmenter policy, \(\rho\) its kept ratio, and \(\Delta\mathcal{L}=\mathcal{L}_{\mathrm{ASR}}-\mathcal{L}_{\mathrm{char}}\) the loss increase over the character reference. The scientific goal is:</p>
+              <summary>Use a constrained frequency objective instead of a fixed band</summary>
+              <p>Let \(\pi\) be the segmenter policy, \(f=50N/T\) its audio-token frequency in Hz, and \(\Delta\mathcal{L}=\mathcal{L}_{\mathrm{ASR}}-\mathcal{L}_{\mathrm{char}}\) the loss increase over the character reference. The scientific goal is:</p>
               <div class="equation">
                 \[
                 \begin{aligned}
-                \min_{\pi,\theta}\quad & \mathbb{E}_{\pi}[\rho] \\
+                \min_{\pi,\theta}\quad & \mathbb{E}_{\pi}[f] \\
                 \text{subject to}\quad & \mathbb{E}_{\pi}[\Delta\mathcal{L}]\le\varepsilon.
                 \end{aligned}
                 \]
@@ -228,7 +228,7 @@
                 \[
                 \begin{aligned}
                 J(\pi,\theta,\lambda)
-                  &=\mathbb{E}_{\pi}[\rho]
+                  &=\mathbb{E}_{\pi}[f]
                     +\lambda\!\left(\mathbb{E}_{\pi}[\Delta\mathcal{L}]-\varepsilon\right),
                     \qquad \lambda\ge 0, \\
                 \lambda
@@ -237,7 +237,7 @@
                 \end{aligned}
                 \]
               </div>
-              <p>Use token NLL or teacher KL during training and corpus WER for checkpoint/Pareto selection. Add a maximum-duration or tail-risk constraint so an average-rate objective cannot sacrifice difficult utterances.</p>
+              <p>Use token NLL or teacher KL during training and corpus WER for checkpoint selection. Add a maximum-duration or tail-risk constraint so an average-frequency objective cannot sacrifice difficult utterances.</p>
             </details>
 
             <details>
@@ -263,13 +263,13 @@
             <h2>The shortest path to an answer</h2>
             <p>Run a one-seed screen in this order:</p>
             <ol>
-              <li>Fixed alignment-constrained rates at 0.167 and 0.125.</li>
-              <li>Character-only versus target-only versus multi-rate decoder warm-up.</li>
+              <li>Fixed alignment-constrained frequencies at 8.3 and 6.3 Hz.</li>
+              <li>Character-only versus target-only versus multi-frequency decoder warm-up.</li>
               <li>Default versus controlled position IDs.</li>
               <li>Duration-aware and weighted pooling.</li>
               <li>Candidate-boundary merging with teacher distillation.</li>
             </ol>
-            <p>Replicate only the winning configurations across three seeds. Reintroduce RL after the constrained merge policy is already competitive. Track not only ρ, but tokens per second, acoustic tokens per output token, maximum segment duration, WER substitutions/deletions/insertions, and performance stratified by utterance difficulty.</p>
+            <p>Replicate only the winning configurations across three seeds. Reintroduce RL after the constrained merge policy is already competitive. Track mean audio-token frequency, acoustic tokens per output token, maximum segment duration, WER substitutions/deletions/insertions, and performance stratified by utterance difficulty.</p>
           </section>
 
           <section id="references" class="section">

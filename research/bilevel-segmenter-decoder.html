@@ -61,7 +61,7 @@
             <h2>The formulation applies; the expensive machinery may not be needed</h2>
             <div class="callout">
               <strong>Recommended interpretation</strong>
-              <p>Treat decoder adaptation as the inner problem and held-out ASR plus the kept-ratio penalty as the outer problem. Keep hard boundary sampling and GRPO. For the first test, change the reward to measure query loss after one temporary decoder update.</p>
+              <p>Treat decoder adaptation as the inner problem and held-out ASR plus the audio-frequency penalty as the outer problem. Keep hard boundary sampling and GRPO. For the first test, change the reward to measure query loss after one temporary decoder update.</p>
             </div>
             <p>The important distinction is temporal. The current segmenter is rewarded for boundaries that the <em>current</em> decoder likes. The scientific goal is closer to boundaries that permit a decoder to learn and generalize well. Those rankings can differ.</p>
             <p>This does <strong>not</strong> imply that a full second-order bilevel optimizer is the next move. A support/query split and a one-step decoder lookahead test the central idea while preserving the current discrete policy and deployment path.</p>
@@ -74,8 +74,10 @@
             <div class="equation">\[
 R_{\mathrm{current}}(a;\theta)
   =-\mathcal{L}_{\mathrm{NLL}}(\theta;a)
-   -\lambda_{\rho}\mathcal{P}_{\rho}(a).
+   -\lambda_{f}\mathcal{P}_{f}(a),
+\qquad f(a)=50N(a)/T\;\mathrm{Hz}.
 \]</div>
+            <p>Here <span class="math">f(a)</span> is the decoder-side audio-token frequency: the 50 Hz encoder frame rate multiplied by the fraction of frames retained as pooled tokens. Lower Hz means stronger compression.</p>
             <p>The reward is detached; the segmenter receives a GRPO update, while decoder CE updates <span class="math">θ</span>. Both happen in the same loop. A bilevel statement instead asks how well the decoder performs after adapting to the boundary distribution:</p>
             <div class="equation">\[
 \begin{aligned}
@@ -87,7 +89,7 @@ R_{\mathrm{current}}(a;\theta)
   &amp;\mathbb{E}_{a_Q\sim\pi_{\phi}}
     \left[
       \mathcal{L}^{Q}_{\mathrm{outer}}(\theta^{\star}(\phi),a_Q)
-      +\lambda_{\rho}\mathcal{P}_{\rho}(a_Q)
+      +\lambda_{f}\mathcal{P}_{f}(a_Q)
     \right].
 \end{aligned}
 \]</div>
@@ -119,7 +121,7 @@ R_{\mathrm{current}}(a;\theta)
               <div class="stat"><strong>0 / 6</strong><span>minimum train-CE epoch also has the best dev-clean WER</span></div>
               <div class="stat"><strong>63.1 ± 0.6%</strong><span>training decoder CE reduction during joint RL</span></div>
               <div class="stat"><strong>+0.42 ± 0.22</strong><span>dev-clean WER points lost by selecting minimum train CE</span></div>
-              <div class="stat"><strong>0.016 ± 0.010</strong><span>within-run dev kept-ratio span</span></div>
+              <div class="stat"><strong>0.8 ± 0.5 Hz</strong><span>within-run dev audio-frequency span</span></div>
             </div>
 
             <figure class="analysis-figure">
@@ -131,14 +133,14 @@ R_{\mathrm{current}}(a;\theta)
     <div class="table-wrap">
       <table>
         <caption><strong>Table 3.</strong> Run-level checkpoint comparison. WER regret is dev-clean WER at the minimum-training-CE epoch minus the best dev-clean WER; lower is better.</caption>
-        <thead><tr><th>Policy</th><th>Seed</th><th>Min train CE epoch</th><th>Best dev WER epoch</th><th>Train CE drop</th><th>WER regret</th><th>Dev ρ span</th></tr></thead>
-        <tbody><tr><td>Bernoulli</td><td>3407</td><td>12</td><td>8</td><td>62.5%</td><td>+0.18</td><td>0.011</td></tr><tr><td>Bernoulli</td><td>3408</td><td>12</td><td>9</td><td>62.9%</td><td>+0.40</td><td>0.015</td></tr><tr><td>Bernoulli</td><td>3409</td><td>12</td><td>7</td><td>63.7%</td><td>+0.65</td><td>0.012</td></tr><tr><td>First-order AR</td><td>3407</td><td>12</td><td>7</td><td>62.4%</td><td>+0.31</td><td>0.036</td></tr><tr><td>First-order AR</td><td>3408</td><td>12</td><td>8</td><td>63.3%</td><td>+0.24</td><td>0.014</td></tr><tr><td>First-order AR</td><td>3409</td><td>12</td><td>7</td><td>63.7%</td><td>+0.71</td><td>0.008</td></tr></tbody>
+        <thead><tr><th>Policy</th><th>Seed</th><th>Min train CE epoch</th><th>Best dev WER epoch</th><th>Train CE drop</th><th>WER regret</th><th>Dev audio-frequency span</th></tr></thead>
+        <tbody><tr><td>Bernoulli</td><td>3407</td><td>12</td><td>8</td><td>62.5%</td><td>+0.18</td><td>0.5 Hz</td></tr><tr><td>Bernoulli</td><td>3408</td><td>12</td><td>9</td><td>62.9%</td><td>+0.40</td><td>0.7 Hz</td></tr><tr><td>Bernoulli</td><td>3409</td><td>12</td><td>7</td><td>63.7%</td><td>+0.65</td><td>0.6 Hz</td></tr><tr><td>First-order AR</td><td>3407</td><td>12</td><td>7</td><td>62.4%</td><td>+0.31</td><td>1.8 Hz</td></tr><tr><td>First-order AR</td><td>3408</td><td>12</td><td>8</td><td>63.3%</td><td>+0.24</td><td>0.7 Hz</td></tr><tr><td>First-order AR</td><td>3409</td><td>12</td><td>7</td><td>63.7%</td><td>+0.71</td><td>0.4 Hz</td></tr></tbody>
       </table>
     </div>
     
             <div class="callout amber">
               <strong>What the pilot does—and does not—show</strong>
-              <p>It shows a stable checkpoint-selection mismatch: training CE and the recorded reward are best at epoch 12 in all six runs, while dev-clean WER is best at epochs 7–9. Selecting by the inner signal costs 0.42 ± 0.22 WER points on average. The dev kept ratio moves by only 0.016 ± 0.010, so simple rate drift is unlikely to explain the pattern. The epoch-wise rank correlation is weak and noisy (-0.19 ± 0.36), so the stronger claim is disagreement of optima—not systematic anticorrelation.</p>
+              <p>It shows a stable checkpoint-selection mismatch: training CE and the recorded reward are best at epoch 12 in all six runs, while dev-clean WER is best at epochs 7–9. Selecting by the inner signal costs 0.42 ± 0.22 WER points on average. Dev audio-token frequency moves by only 0.8 ± 0.5 Hz, so simple frequency drift is unlikely to explain the pattern. The epoch-wise rank correlation is weak and noisy (-0.19 ± 0.36), so the stronger claim is disagreement of optima—not systematic anticorrelation.</p>
             </div>
           </section>
 
@@ -162,7 +164,7 @@ R_{\mathrm{current}}(a;\theta)
             <p class="eyebrow">Connection to the OPD proposal</p>
             <h2>OPD and bilevel training solve different parts of the loop</h2>
             <p>On-policy prefix distillation changes <em>how the decoder adapts</em> to sampled lower-rate prefixes. Bilevel training changes <em>how the segmenter is judged</em>: by the performance of that adapted decoder on held-out speech. They are complementary rather than competing ideas.</p>
-            <p>In a later arm, the inner support loss can be transcript CE plus oracle-char distillation. The outer query loss should remain ASR NLL or CER plus the kept-ratio penalty, so the segmenter is not rewarded merely for making the teacher easy to imitate.</p>
+            <p>In a later arm, the inner support loss can be transcript CE plus oracle-char distillation. The outer query loss should remain ASR NLL or CER plus the audio-frequency penalty, so the segmenter is not rewarded merely for making the teacher easy to imitate.</p>
           </section>
 
           <section id="next-test" class="section">
@@ -185,14 +187,14 @@ R_{\mathrm{current}}(a;\theta)
     \mathcal{L}^{S}_{\mathrm{inner}}(\theta,a_{S,k}), \\
 R^{\mathrm{lookahead}}_k
   &amp;=-\mathcal{L}^{Q}_{\mathrm{outer}}(\theta&#x27;_k,a_{Q,k})
-    -\lambda_{\rho}\mathcal{P}_{\rho}(a_{Q,k}).
+    -\lambda_{f}\mathcal{P}_{f}(a_{Q,k}).
 \end{aligned}
 \]</div>
             <ol class="steps">
               <li><strong>Start from the current best configuration</strong><p>Use the WavLM CNN first-order AR segmenter, the best char decoder, and the existing rate band.</p></li>
               <li><strong>Keep the diagnostic small</strong><p>Use two rollouts, one temporary decoder step, and a short matched run before any three-seed WER study. The first output is the rollout-rank agreement between the current and lookahead rewards.</p></li>
               <li><strong>Separate the two causal questions</strong><p>Arm B tests whether held-out scoring alone helps. Arm C tests whether decoder adaptation adds information beyond that split.</p></li>
-              <li><strong>Advance only on a measurable signal</strong><p>Proceed to three seeds if lookahead changes rollout rankings consistently and improves held-out NLL without raising the kept ratio. Use WER only for checkpoint selection and final evaluation.</p></li>
+              <li><strong>Advance only on a measurable signal</strong><p>Proceed to three seeds if lookahead changes rollout rankings consistently and improves held-out NLL without raising audio-token frequency. Use WER only for checkpoint selection and final evaluation.</p></li>
             </ol>
           </section>
 
