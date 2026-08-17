@@ -73,14 +73,14 @@
             <h2>The clean-speech reference has changed; the robustness conclusion has not</h2>
             <div class="table-wrap">
       <table>
-        <caption><strong>Table 1.</strong> Current WavLM reference systems. WER values are mean ± sample SD over seeds 3407/3408/3409; lower is better. The local-history Transformer-AR + BiGRU system has the lowest replicated test-clean mean, while its test-other variance remains large.</caption>
+        <caption><strong>Table 1.</strong> Current WavLM reference systems. WER values are mean ± sample SD; lower is better. The BiGRU row uses the reported seeds 3407/3409/3411; the other rows use their stated three-seed cohorts. The local-history Transformer-AR + BiGRU system has the lowest test-clean mean, while its test-other variance remains larger than the CNN first-order control.</caption>
         <thead><tr><th>System</th><th>Audio-token frequency</th><th>Test-clean WER</th><th>Test-other WER</th><th>Role in the bilevel study</th></tr></thead>
-        <tbody><tr><td>Oracle char boundaries + char decoder</td><td>14.6 Hz</td><td>5.03 ± 0.42</td><td>8.07 ± 0.43</td><td>Reference for boundary quality; not a learned policy arm</td></tr><tr><td>CNN segmenter · first-order AR · mean pooling · char decoder</td><td>11.7 Hz</td><td>5.06 ± 0.18</td><td>9.55 ± 0.17</td><td>Faster, more stable control</td></tr><tr><td>Local-history Transformer AR · mean pooling · char decoder</td><td>11.3 Hz</td><td>5.67 ± 1.00</td><td>9.95 ± 0.65</td><td>Matched pooling control</td></tr><tr><td>Local-history Transformer AR · BiGRU residual pooling · char decoder</td><td>10.7 Hz</td><td>4.92 ± 0.13</td><td>9.66 ± 1.18</td><td>Primary clean-speech configuration; robustness is not established</td></tr></tbody>
+        <tbody><tr><td>Oracle char boundaries + char decoder</td><td>14.6 Hz</td><td>5.03 ± 0.42</td><td>8.07 ± 0.43</td><td>Reference for boundary quality; not a learned policy arm</td></tr><tr><td>CNN segmenter · first-order AR · mean pooling · char decoder</td><td>11.7 Hz</td><td>5.06 ± 0.18</td><td>9.55 ± 0.17</td><td>Faster, more stable control</td></tr><tr><td>Local-history Transformer AR · mean pooling · char decoder</td><td>11.3 Hz</td><td>5.67 ± 1.00</td><td>9.95 ± 0.65</td><td>Matched pooling control</td></tr><tr><td>Local-history Transformer AR · BiGRU residual pooling · char decoder</td><td>10.3 Hz</td><td>4.89 ± 0.08</td><td>9.43 ± 0.80</td><td>Primary clean-speech configuration; robustness is not established</td></tr></tbody>
       </table>
     </div>
             <div class="callout amber">
               <strong>How this changes the bilevel pilot</strong>
-              <p>Use the local-history Transformer-AR + BiGRU system for the main diagnostic because it has the lowest replicated test-clean mean. Do not treat it as an unqualified overall winner: its 1.18-point test-other sample SD is much larger than the CNN first-order control’s 0.17. The pilot should therefore retain the CNN system as a cheaper stability control and report dev-clean and dev-other separately.</p>
+              <p>Use the local-history Transformer-AR + BiGRU system for the main diagnostic because its reported 3407/3409/3411 cohort has the lowest test-clean mean. Do not treat it as an unqualified overall winner: its 0.80-point test-other sample SD is larger than the CNN first-order control’s 0.17. The pilot should therefore retain the CNN system as a cheaper stability control and report dev-clean and dev-other separately.</p>
             </div>
           </section>
 
@@ -215,7 +215,7 @@ R^{\mathrm{lookahead}}_k
               <li>Dev-clean WER is useful for selection but is not the differentiable outer loss used by a prospective method.</li>
               <li>One-step lookahead favors boundaries that support fast adaptation; more steps may produce different rankings.</li>
               <li>A support/query split increases variance and compute, so the gain must be compared at matched updates and reported with runtime.</li>
-              <li>The 4.92 test-clean result does not settle harder-speech behavior: the corresponding test-other mean is 9.66 with 1.18 sample SD.</li>
+              <li>The 4.89 test-clean result does not settle harder-speech behavior: the corresponding test-other mean is 9.43 with 0.80 sample SD.</li>
             </ul>
           </section>
 

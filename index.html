@@ -68,12 +68,12 @@
           <div class="stat"><strong>5.03 / 8.07</strong><span>Character-aligned clean / other WER</span></div>
           <div class="stat"><strong>11.7 Hz</strong><span>WavLM CNN first-order AR audio-token frequency</span></div>
           <div class="stat"><strong>5.06 / 9.55</strong><span>WavLM CNN first-order AR clean / other WER</span></div>
-          <div class="stat"><strong>10.7 Hz</strong><span>WavLM local-history Transformer AR + BiGRU audio-token frequency</span></div>
-          <div class="stat"><strong>4.92 / 9.66</strong><span>WavLM local-history Transformer AR + BiGRU clean / other WER</span></div>
+          <div class="stat"><strong>10.3 Hz</strong><span>WavLM local-history Transformer AR + BiGRU audio-token frequency</span></div>
+          <div class="stat"><strong>4.89 / 9.43</strong><span>WavLM local-history Transformer AR + BiGRU clean / other WER</span></div>
         </div>
         <div class="callout">
           <strong>Working conclusion</strong>
-          <p>Two learned configurations now frame the result. CNN first-order AR reaches 5.06 / 9.55 WER at 11.7 Hz. Local-history Transformer AR with BiGRU residual pooling reaches 4.92 / 9.66 at 10.7 Hz. BiGRU improves test-clean for all three paired seeds relative to mean pooling, but test-other is mixed and more variable. Order-aware pooling is therefore promising for clean speech; robustness on harder speech remains unresolved.</p>
+          <p>Two learned configurations now frame the result. CNN first-order AR reaches 5.06 / 9.55 WER at 11.7 Hz. The reported local-history Transformer AR with BiGRU residual pooling cohort—seeds 3407, 3409, and 3411—reaches 4.89 / 9.43 at 10.3 Hz. Both seeds shared with the mean-pooling cohort improve on clean and other, but the third seed differs between cohorts and test-other remains variable. Order-aware pooling is therefore promising, with the clean-speech result providing the stronger evidence.</p>
         </div>
       </div>
     </section>
