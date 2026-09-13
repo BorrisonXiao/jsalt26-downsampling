@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Single-task results and shared-audio boundary analysis on CREMA-D, Expresso and LibriSpeech.">
+  <title>Non-ASR boundaries · Analyses · JSALT 2026</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <style>
+    .analysis-tabs{display:flex;flex:0 0 auto;gap:6px;padding:7px 18px;overflow-x:auto;background:var(--surface);border-bottom:1px solid var(--border)}
+    .analysis-tabs a{flex:0 0 auto;white-space:nowrap;padding:5px 11px;border-radius:7px;color:var(--muted);font-size:13px;text-decoration:none}
+    .analysis-tabs a[aria-current=page]{background:var(--accent-soft);color:var(--accent);font-weight:650}
+    @media(max-width:620px){
+      .report-bar{flex-wrap:wrap;gap:5px 12px;padding:8px 12px}
+      .report-bar strong{display:none}
+      .report-bar a{font-size:12px}
+      .analysis-tabs{flex-wrap:wrap;gap:3px;padding:6px 12px}
+      .analysis-tabs a{font-size:12px;padding:4px 8px}
+    }
+  </style>
+</head>
+<body class="report-shell">
+  <nav class="report-bar" aria-label="Primary navigation">
+    <strong>JSALT 2026 · Downsampling</strong>
+    <a href="../index.html">Home</a>
+    <a href="../reports/segmenter-training.html">Training report</a>
+    <a href="./" aria-current="page">Analyses</a>
+    <a href="../proposals/">Proposals</a>
+    <a href="nonasr-task-boundaries-standalone.html?v=20260913-nonasr-boundaries" target="_blank" rel="noopener">Open full page ↗</a>
+  </nav>
+  <nav class="analysis-tabs" aria-label="Analysis sub-tabs">
+    <a href="./">All analyses</a>
+    <a href="decoder-segmenter-bias.html">01 · Decoder bias</a>
+    <a href="bilevel-segmenter-decoder.html">02 · Bilevel optimization</a>
+    <a href="nonasr-task-boundaries.html" aria-current="page">03 · Non-ASR boundaries</a>
+  </nav>
+  <iframe class="report-frame" src="nonasr-task-boundaries-standalone.html?v=20260913-nonasr-boundaries" title="Non-ASR task results and boundary analysis"></iframe>
+</body>
+</html>
