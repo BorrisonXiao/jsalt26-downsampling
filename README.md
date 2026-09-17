@@ -21,6 +21,10 @@ policies that compress frozen speech features before a LoRA-adapted Llama decode
   — navigable OPD proposal wrapper.
 - [`proposals/on-policy-prefix-distillation-standalone.html`](proposals/on-policy-prefix-distillation-standalone.html)
   — self-contained OPD proposal.
+- [`proposals/adaptive-frequency-curriculum.html`](proposals/adaptive-frequency-curriculum.html)
+  — navigable adaptive frequency curriculum proposal wrapper.
+- [`proposals/adaptive-frequency-curriculum-standalone.html`](proposals/adaptive-frequency-curriculum-standalone.html)
+  — self-contained adaptive frequency curriculum proposal.
 - [`assets/site.css`](assets/site.css) — shared styling for the dashboard and research pages.
 
 ## Adding another page
