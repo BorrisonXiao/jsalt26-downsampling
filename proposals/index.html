@@ -37,7 +37,7 @@
           <a class="card card-link" href="xlingual-24k-replication.html">
             <span class="tag amber">XLR</span>
             <h3>Cross-lingual 24k-step replication</h3>
-            <p>Replicates the LS960 24k-step learned-downsampling study in Mandarin (AISHELL-1, chinese-hubert-large) and Japanese (ReazonSpeech, japanese-hubert-large) against a rate ladder of baselines — fixed k=5, syllable/initial-final/mora oracles, phone oracle — with phone-anchored initialization so the rate band can only compress.</p>
+            <p>Replicates the LS960 24k-step learned-downsampling study in Mandarin (AISHELL-1, chinese-hubert-large) and Japanese (ReazonSpeech, japanese-hubert-large) against fixed k=5, char-level (zh character / ja mora) oracles, and phone-oracle baselines, with phone-anchored initialization and a lowered 5–10 Hz rate band so the learned arm compresses toward the char-level rate.</p>
             <p class="item-meta">18 September 2026 · Proposed, not yet launched</p>
           </a>
           <a class="card card-link" href="on-policy-prefix-distillation.html">
