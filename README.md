@@ -13,6 +13,7 @@ policies that compress frozen speech features before a LoRA-adapted Llama decode
 - [`reports/segmenter-training-standalone.html`](reports/segmenter-training-standalone.html)
   — original self-contained report with inline figures.
 - [`research/index.html`](research/index.html) — collection page for research analyses.
+- [`research/table3-asr-errors.html`](research/table3-asr-errors.html) — AISHELL-1 Mandarin ASR errors in the auxiliary-loss replication.
 - [`research/decoder-segmenter-bias.html`](research/decoder-segmenter-bias.html) — literature
   review, hypothesis audit, mathematical framing, and prioritized experiments for lower kept
   ratios.
